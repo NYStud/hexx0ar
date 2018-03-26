@@ -1,10 +1,5 @@
 #version 330
 
-#extension GL_ARB_gpu_shader5 : require
-#extension GL_ARB_draw_instanced : require
-#extension GL_ARB_shader_storage_buffer_object : require
-#extension GL_ARB_shading_language_420pack: require
-
 uniform sampler2D tex0;
 
 in vec2 vertex;

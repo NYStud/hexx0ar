@@ -44,7 +44,7 @@ void Application::start(int argc, const char** argv) {
 
   static HexEdit hexedit;
   hexedit.Highlights.emplace_back(std::make_tuple(30, 50, IM_COL32(255,0,0,40)));
-  hexedit.Highlights.emplace_back(std::make_tuple(60, 80, IM_COL32(0,255,0,40)));
+  //hexedit.Highlights.emplace_back(std::make_tuple(100, 180, IM_COL32(0,255,0,40)));
 
   while(m_running) {
     m_ticks = SDL_GetTicks();
