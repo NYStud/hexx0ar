@@ -1,5 +1,5 @@
 #include "application.hpp"
-#include "imgui_memory_editor.h"
+#include "hexedit/hexedit.hpp"
 
 void khr_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *msg,
                         const void *data) {
@@ -42,6 +42,10 @@ void Application::start(int argc, const char** argv) {
 
   m_running = true;
 
+  static HexEdit hexedit;
+  hexedit.Highlights.emplace_back(std::make_tuple(30, 50, IM_COL32(255,0,0,40)));
+  hexedit.Highlights.emplace_back(std::make_tuple(60, 80, IM_COL32(0,255,0,40)));
+
   while(m_running) {
     m_ticks = SDL_GetTicks();
 
@@ -57,11 +61,6 @@ void Application::start(int argc, const char** argv) {
     ImGui::Text("time per frame: %s", str.c_str());
     ImGui::End();
 
-    static MemoryEditor mem_edit;
-    mem_edit.HighlightColor = ImGui::GetColorU32(ImVec4(1,0,0,1));
-    mem_edit.HighlightMin = 10;
-    mem_edit.HighlightMax = 20;
-
     ImGui::Begin("Hexedit", NULL, ImGuiWindowFlags_MenuBar);
 
     if (ImGui::BeginMenuBar())
@@ -75,7 +74,7 @@ void Application::start(int argc, const char** argv) {
       ImGui::EndMenuBar();
     }
 
-    mem_edit.DrawContents((unsigned char*)this, sizeof(*this), (size_t)this);
+    hexedit.DrawContents((unsigned char*)this, sizeof(*this), (size_t)this);
 
     ImGui::End();
 

@@ -71,7 +71,7 @@ set(SOURCE_FILES
         src/renderer/camera.cpp
         src/sdlwrapper/sdlwindow.cpp
         src/opengl/textures.cpp
-        )
+        src/hexedit/hexedit.cpp)
 
 set(MAIN_SRC
         src/main.cpp

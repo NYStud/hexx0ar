@@ -1,47 +1,17 @@
-// Mini memory editor for Dear ImGui (to embed in your game/tools)
-// Animated GIF: https://twitter.com/ocornut/status/894242704317530112
-// Get latest version at http://www.github.com/ocornut/imgui_club
-//
-// You can adjust the keyboard repeat delay/rate in ImGuiIO.
-// The code assume a mono-space font for simplicity! If you don't use the default font, use ImGui::PushFont()/PopFont() to switch to a mono-space font before caling this.
-//
-// Usage:
-//   static MemoryEditor mem_edit_1;                                            // store your state somewhere
-//   mem_edit_1.DrawWindow("Memory Editor", mem_block, mem_block_size, 0x0000); // create a window and draw memory editor (if you already have a window, use DrawContents())
-//
-// Usage:
-//   static MemoryEditor mem_edit_2;
-//   ImGui::Begin("MyWindow")
-//   mem_edit_2.DrawContents(this, sizeof(*this), (size_t)this);
-//   ImGui::End();
-//
-// Changelog:
-// - v0.10: initial version
-// - v0.11: always refresh active text input with the latest byte from source memory if it's not being edited.
-// - v0.12: added OptMidRowsCount to allow extra spacing every XX rows.
-// - v0.13: added optional ReadFn/WriteFn handlers to access memory via a function. various warning fixes for 64-bits.
-// - v0.14: added GotoAddr member, added GotoAddrAndHighlight() and highlighting. fixed minor scrollbar glitch when resizing.
-// - v0.15: added maximum window width. minor optimization.
-// - v0.16: added OptGreyOutZeroes option. various sizing fixes when resizing using the "Rows" drag.
-// - v0.17: added HighlightFn handler for optional non-contiguous highlighting.
-// - v0.18: fixes for displaying 64-bits addresses, fixed mouse click gaps introduced in recent changes, cursor tracking scrolling fixes.
-// - v0.19: fixed auto-focus of next byte leaving WantCaptureKeyboard=false for one frame. we now capture the keyboard during that transition.
-// - v0.20: added options menu. added OptShowAscii checkbox. added optional HexII display. split Draw() in DrawWindow()/DrawContents(). fixing glyph width. refactoring/cleaning code.
-// - v0.21: fixes for using DrawContents() in our own window. fixed HexII to actually be useful and not on the wrong side.
-// - v0.22: clicking Ascii view select the byte in the Hex view. Ascii view highlight selection.
-// - v0.23: fixed right-arrow triggering a byte write
 //
 // Todo/Bugs:
 // - Arrows are being sent to the InputText() about to disappear which for LeftArrow makes the text cursor appear at position 1 for one frame.
 
 #pragma once
-#include <stdio.h>  // sprintf, scanf
+#include <stdio.h>
+#include <utility>
+#include <iostream>
+#include "imgui.h"
+#include <vector>
+#include <tuple>
 
-struct MemoryEditor
+struct HexEdit
 {
-  typedef unsigned char u8;
-
-  // Settings
   bool            Open;                                   // = true   // set to false when DrawWindow() was closed. ignore if not using DrawWindow
   bool            ReadOnly;                               // = false  // set to true to disable any editing
   int             Rows;                                   // = 16     //
@@ -50,51 +20,25 @@ struct MemoryEditor
   bool            OptGreyOutZeroes;                       // = true   //
   int             OptMidRowsCount;                        // = 8      // set to 0 to disable extra spacing between every mid-rows
   int             OptAddrDigitsCount;                     // = 0      // number of addr digits to display (default calculated based on maximum displayed addr)
-  ImU32           HighlightColor;                         //          // color of highlight
-  u8              (*ReadFn)(u8* data, size_t off);        // = NULL   // optional handler to read bytes
-  void            (*WriteFn)(u8* data, size_t off, u8 d); // = NULL   // optional handler to write bytes
-  bool            (*HighlightFn)(u8* data, size_t off);   // = NULL   // optional handler to return Highlight property (to support non-contiguous highlighting)
+  uint8_t              (*ReadFn)(uint8_t* data, size_t off);        // = NULL   // optional handler to read uint8_ts
+  void            (*WriteFn)(uint8_t* data, size_t off, uint8_t d); // = NULL   // optional handler to write uint8_ts
 
-  // State/Internals
   bool            ContentsWidthChanged;
   size_t          DataEditingAddr;
   bool            DataEditingTakeFocus;
   char            DataInputBuf[32];
   char            AddrInputBuf[32];
   size_t          GotoAddr;
-  size_t          HighlightMin, HighlightMax;
 
-  MemoryEditor()
-  {
-    // Settings
-    Open = true;
-    ReadOnly = false;
-    Rows = 16;
-    OptShowAscii = true;
-    OptShowHexII = false;
-    OptGreyOutZeroes = true;
-    OptMidRowsCount = 8;
-    OptAddrDigitsCount = 0;
-    HighlightColor = IM_COL32(255, 255, 255, 40);
-    ReadFn = NULL;
-    WriteFn = NULL;
-    HighlightFn = NULL;
+  std::vector<std::tuple<size_t, size_t, ImU32>> Highlights;
 
-    // State/Internals
-    ContentsWidthChanged = false;
-    DataEditingAddr = (size_t)-1;
-    DataEditingTakeFocus = false;
-    memset(DataInputBuf, 0, sizeof(DataInputBuf));
-    memset(AddrInputBuf, 0, sizeof(AddrInputBuf));
-    GotoAddr = (size_t)-1;
-    HighlightMin = HighlightMax = (size_t)-1;
-  }
+  HexEdit();
 
   void GotoAddrAndHighlight(size_t addr_min, size_t addr_max)
   {
     GotoAddr = addr_min;
-    HighlightMin = addr_min;
-    HighlightMax = addr_max;
+    //HighlightMin = addr_min;
+    //HighlightMax = addr_max;
   }
 
   struct Sizes
@@ -142,7 +86,7 @@ struct MemoryEditor
 #endif
 
   // Standalone Memory Editor window
-  void DrawWindow(const char* title, u8* mem_data, size_t mem_size, size_t base_display_addr = 0x0000)
+  void DrawWindow(const char* title, uint8_t* mem_data, size_t mem_size, size_t base_display_addr = 0x0000)
   {
     Sizes s;
     CalcSizes(s, mem_size, base_display_addr);
@@ -164,7 +108,7 @@ struct MemoryEditor
   }
 
   // Memory Editor contents only
-  void DrawContents(u8* mem_data, size_t mem_size, size_t base_display_addr = 0x0000)
+  void DrawContents(uint8_t* mem_data, size_t mem_size, size_t base_display_addr = 0x0000)
   {
     Sizes s;
     CalcSizes(s, mem_size, base_display_addr);
@@ -222,29 +166,32 @@ struct MemoryEditor
       // Draw Hexadecimal
       for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
       {
-        float byte_pos_x = s.PosHexStart + s.HexCellWidth * n;
+        float uint8_t_pos_x = s.PosHexStart + s.HexCellWidth * n;
         if (OptMidRowsCount > 0)
-          byte_pos_x += (n / OptMidRowsCount) * s.SpacingBetweenMidRows;
-        ImGui::SameLine(byte_pos_x);
+          uint8_t_pos_x += (n / OptMidRowsCount) * s.SpacingBetweenMidRows;
+        ImGui::SameLine(uint8_t_pos_x);
 
-        // Draw highlight
-        if ((addr >= HighlightMin && addr < HighlightMax) || (HighlightFn && HighlightFn(mem_data, addr)))
-        {
-          ImVec2 pos = ImGui::GetCursorScreenPos();
-          float highlight_width = s.GlyphWidth * 2;
-          bool is_next_byte_highlighted =  (addr + 1 < mem_size) && ((HighlightMax != (size_t)-1 && addr + 1 < HighlightMax) || (HighlightFn && HighlightFn(mem_data, addr + 1)));
-          if (is_next_byte_highlighted || (n + 1 == Rows))
-          {
-            highlight_width = s.HexCellWidth;
-            if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
-              highlight_width += s.SpacingBetweenMidRows;
+        for(auto h : Highlights) {
+          size_t min, max;
+          ImU32 color;
+          std::tie(min, max, color) = h;
+          if((addr >= min && addr < max)) {
+            ImVec2 pos = ImGui::GetCursorScreenPos();
+            float highlight_width = s.GlyphWidth * 2;
+            bool is_next_uint8_t_highlighted =  (addr + 1 < mem_size) && ((max != (size_t)-1 && addr + 1 < max));
+            if (is_next_uint8_t_highlighted || (n + 1 == Rows))
+            {
+              highlight_width = s.HexCellWidth;
+              if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
+                highlight_width += s.SpacingBetweenMidRows;
+            }
+            draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), color);
           }
-          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), HighlightColor);
         }
 
         if (DataEditingAddr == addr)
         {
-          // Display text input on current byte
+          // Display text input on current uint8_t
           bool data_write = false;
           ImGui::PushID((void*)addr);
           if (DataEditingTakeFocus)
@@ -265,7 +212,7 @@ struct MemoryEditor
                 user_data->CursorPos = data->CursorPos;
               if (data->SelectionStart == 0 && data->SelectionEnd == data->BufTextLen)
               {
-                // When not editing a byte, always rewrite its content (this is a bit tricky, since InputText technically "owns" the master copy of the buffer we edit it in there)
+                // When not editing a uint8_t, always rewrite its content (this is a bit tricky, since InputText technically "owns" the master copy of the buffer we edit it in there)
                 data->DeleteChars(0, data->BufTextLen);
                 data->InsertChars(0, user_data->CurrentBufOverwrite);
                 data->SelectionStart = 0;
@@ -294,16 +241,16 @@ struct MemoryEditor
           if (data_write && sscanf(DataInputBuf, "%X", &data_input_value) == 1)
           {
             if (WriteFn)
-              WriteFn(mem_data, addr, (u8)data_input_value);
+              WriteFn(mem_data, addr, (uint8_t)data_input_value);
             else
-              mem_data[addr] = (u8)data_input_value;
+              mem_data[addr] = (uint8_t)data_input_value;
           }
           ImGui::PopID();
         }
         else
         {
           // NB: The trailing space is not visible but ensure there's no gap that the mouse cannot click on.
-          u8 b = ReadFn ? ReadFn(mem_data, addr) : mem_data[addr];
+          uint8_t b = ReadFn ? ReadFn(mem_data, addr) : mem_data[addr];
 
           if (OptShowHexII)
           {
@@ -398,7 +345,7 @@ struct MemoryEditor
       if (sscanf(AddrInputBuf, "%" _PRISizeT, &goto_addr) == 1)
       {
         GotoAddr = goto_addr - base_display_addr;
-        HighlightMin = HighlightMax = (size_t)-1;
+        //HighlightMin = HighlightMax = (size_t)-1;
       }
     }
     ImGui::PopItemWidth();
