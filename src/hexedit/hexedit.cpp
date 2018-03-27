@@ -94,6 +94,15 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
   if (ReadOnly || DataEditingAddr >= mem_size)
     DataEditingAddr = (size_t)-1;
 
+  if(ImGui::IsMouseDown(0)) {
+    if(!Clicked) {
+      Clicked = true;
+      ClickStartPos = 0;
+    } else {
+
+    }
+  }
+
   size_t data_editing_addr_backup = DataEditingAddr;
   size_t data_editing_addr_next = (size_t)-1;
   if (DataEditingAddr != (size_t)-1)

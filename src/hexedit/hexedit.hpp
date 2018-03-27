@@ -32,6 +32,9 @@ struct HexEdit
 
   std::vector<std::tuple<size_t, size_t, ImU32>> Highlights;
 
+  bool Clicked = false;
+  size_t ClickStartPos, ClickCurrentPos;
+
   HexEdit();
 
   void GotoAddrAndHighlight(size_t addr_min, size_t addr_max)
