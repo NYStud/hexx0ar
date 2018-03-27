@@ -335,6 +335,16 @@ struct HexEdit
       ImGui::EndPopup();
     }
 
+    if(ImGui::IsMouseDown(1))
+      ImGui::OpenPopup("rightclickmenu");
+    // Test
+    if(ImGui::BeginPopup("rightclickmenu")) {
+      ImGui::PushItemWidth(12);
+      ImGui::PopItemWidth();
+      ImGui::Text("foo");
+      ImGui::EndPopup();
+    }
+
     ImGui::SameLine();
     ImGui::Text("Range %0*" _PRISizeT "..%0*" _PRISizeT, s.AddrDigitsCount, base_display_addr, s.AddrDigitsCount, base_display_addr + mem_size - 1);
     ImGui::SameLine();
