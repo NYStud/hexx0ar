@@ -34,7 +34,7 @@ void Application::start(int argc, const char** argv) {
   m_wnd.onTextInput.connect([this](std::string text) { m_uirenderer.onTextInput(text); });
 
   m_wnd.open();
-  m_wnd.setTitle("bluebuild");
+  m_wnd.setTitle("hexx0ar");
 
   glDebugMessageCallback(&khr_debug_callback, NULL);
 
@@ -56,12 +56,15 @@ void Application::start(int argc, const char** argv) {
 
     m_uirenderer.update(m_delta);
 
-    ImGui::Begin("mainloop: ");
+    ImGui::Begin("debug info: ");
     auto str = std::to_string(m_delta) + " ms";
     ImGui::Text("time per frame: %s", str.c_str());
+    ImGui::Text("clicked %d", hexedit.Clicked);
+    ImGui::Text("clickstart %d", hexedit.ClickStartPos);
+    ImGui::Text("clickpos %d", hexedit.ClickCurrentPos);
     ImGui::End();
 
-    ImGui::Begin("Hexedit", NULL, ImGuiWindowFlags_MenuBar);
+    ImGui::Begin("Hexedit", NULL, ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove);
 
     if (ImGui::BeginMenuBar())
     {
@@ -74,6 +77,7 @@ void Application::start(int argc, const char** argv) {
       ImGui::EndMenuBar();
     }
 
+    hexedit.ReadOnly = true;
     hexedit.DrawContents((unsigned char*)this, sizeof(*this), (size_t)this);
 
     ImGui::End();

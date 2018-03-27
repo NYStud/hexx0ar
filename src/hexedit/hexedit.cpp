@@ -94,15 +94,6 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
   if (ReadOnly || DataEditingAddr >= mem_size)
     DataEditingAddr = (size_t)-1;
 
-  if(ImGui::IsMouseDown(0)) {
-    if(!Clicked) {
-      Clicked = true;
-      ClickStartPos = 0;
-    } else {
-
-    }
-  }
-
   size_t data_editing_addr_backup = DataEditingAddr;
   size_t data_editing_addr_next = (size_t)-1;
   if (DataEditingAddr != (size_t)-1)
@@ -144,10 +135,12 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
       ImGui::SameLine(uint8_t_pos_x);
 
       // highlight specified areas
-      for(auto h : Highlights) {
-        size_t min, max;
-        ImU32 color;
-        std::tie(min, max, color) = h;
+      //for(auto h : Highlights) {
+      if(Clicked) {
+        size_t min = ClickStartPos;
+        size_t max = ClickCurrentPos;
+        ImU32 color = IM_COL32(255,0,0,128);
+        //std::tie(min, max, color) = h;
         if((addr >= min && addr < max)) {
           ImVec2 pos = ImGui::GetCursorScreenPos();
           float highlight_width = s.GlyphWidth * 2;
@@ -161,6 +154,7 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
           draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), color);
         }
       }
+      //}
 
       if (DataEditingAddr == addr)
       {
@@ -243,11 +237,28 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
           else
             ImGui::Text("%02X ", b);
         }
+
         if (!ReadOnly && ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
         {
           DataEditingTakeFocus = true;
           data_editing_addr_next = addr;
         }
+
+        // text selection
+        if(ImGui::IsMouseDown(0)) {
+          if (ImGui::IsItemHovered()) {
+            if (!Clicked) {
+              Clicked = true;
+              ClickStartPos = addr;
+              ClickCurrentPos = addr+1;
+            } else {
+              ClickCurrentPos = addr+1;
+            }
+          }
+        } else {
+          Clicked = false;
+        }
+
       }
     }
 
