@@ -12,6 +12,8 @@
 
 struct HexEdit
 {
+private:
+public:
   bool            Open;                                   // = true   // set to false when DrawWindow() was closed. ignore if not using DrawWindow
   bool            ReadOnly;                               // = false  // set to true to disable any editing
   int             Rows;                                   // = 16     //

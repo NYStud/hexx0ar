@@ -113,6 +113,21 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
       ImGui::SetScrollY(ImGui::GetScrollY() + scroll_offset * s.LineHeight);
   }
 
+  if(ImGui::IsMouseClicked(1)) {
+    ImGui::OpenPopup("##contextmenu");
+  }
+  if (ImGui::BeginPopup("##contextmenu"))
+  {
+    ImGui::PushItemWidth(56);
+    if(ImGui::Button("test")) {
+      Highlights.emplace_back(std::make_tuple(ClickStartPos, ClickCurrentPos, IM_COL32(0,255,255,128)));
+      Clicked = false;
+      ClickStartPos = 0;
+      ClickCurrentPos = 0;
+    }
+    ImGui::EndPopup();
+  }
+
   // Draw vertical separator
   ImVec2 window_pos = ImGui::GetWindowPos();
   if (OptShowAscii)
@@ -134,11 +149,11 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
         uint8_t_pos_x += (n / OptMidRowsCount) * s.SpacingBetweenMidRows;
       ImGui::SameLine(uint8_t_pos_x);
 
-      // highlight specified areas
-      //for(auto h : Highlights) {
-      if(Clicked) {
-        size_t min = ClickStartPos;
-        size_t max = ClickCurrentPos;
+      //todo refactor!
+      // highlight current selection
+      {
+        size_t min = std::min(ClickStartPos, ClickCurrentPos);
+        size_t max = std::max(ClickStartPos, ClickCurrentPos);
         ImU32 color = IM_COL32(255,0,0,128);
         //std::tie(min, max, color) = h;
         if((addr >= min && addr < max)) {
@@ -154,7 +169,25 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
           draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), color);
         }
       }
-      //}
+      // highlight specified areas
+      for(auto h : Highlights) {
+        size_t min = std::min(ClickStartPos, ClickCurrentPos);
+        size_t max = std::max(ClickStartPos, ClickCurrentPos);
+        ImU32 color;
+        std::tie(min, max, color) = h;
+        if((addr >= min && addr < max)) {
+          ImVec2 pos = ImGui::GetCursorScreenPos();
+          float highlight_width = s.GlyphWidth * 2;
+          bool is_next_uint8_t_highlighted =  (addr + 1 < mem_size) && ((max != (size_t)-1 && addr + 1 < max));
+          if (is_next_uint8_t_highlighted || (n + 1 == Rows))
+          {
+            highlight_width = s.HexCellWidth;
+            if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
+              highlight_width += s.SpacingBetweenMidRows;
+          }
+          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), color);
+        }
+      }
 
       if (DataEditingAddr == addr)
       {
