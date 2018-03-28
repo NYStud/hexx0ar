@@ -46,13 +46,13 @@ void HexEdit::CalcSizes(Sizes &s, size_t mem_size, size_t base_display_addr) {
   s.WindowWidth = s.PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + s.GlyphWidth;
 }
 
-void HexEdit::DrawWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr) {
+void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr, ImGuiWindowFlags flags) {
   Sizes s;
   CalcSizes(s, mem_size, base_display_addr);
   ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(s.WindowWidth, FLT_MAX));
 
   Open = true;
-  if (ImGui::Begin(title, &Open, ImGuiWindowFlags_NoScrollbar))
+  if (ImGui::Begin(title, &Open, flags))
   {
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsMouseClicked(1))
       ImGui::OpenPopup("context");
@@ -63,7 +63,6 @@ void HexEdit::DrawWindow(const char *title, uint8_t *mem_data, size_t mem_size, 
       ImGui::SetWindowSize(ImVec2(s.WindowWidth, ImGui::GetWindowSize().y));
     }
   }
-  ImGui::End();
 }
 
 #ifdef _MSC_VER
@@ -120,7 +119,8 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
   {
     ImGui::PushItemWidth(56);
     if(ImGui::Button("test")) {
-      Highlights.emplace_back(std::make_tuple(ClickStartPos, ClickCurrentPos, IM_COL32(0,255,255,128)));
+      Highlights.emplace_back(std::make_tuple(std::min(ClickStartPos, ClickCurrentPos),
+                                              std::max(ClickStartPos, ClickCurrentPos), IM_COL32(0,255,255,128)));
       Clicked = false;
       ClickStartPos = 0;
       ClickCurrentPos = 0;
@@ -171,8 +171,7 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
       }
       // highlight specified areas
       for(auto h : Highlights) {
-        size_t min = std::min(ClickStartPos, ClickCurrentPos);
-        size_t max = std::max(ClickStartPos, ClickCurrentPos);
+        size_t min, max;
         ImU32 color;
         std::tie(min, max, color) = h;
         if((addr >= min && addr < max)) {

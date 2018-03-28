@@ -63,7 +63,7 @@ public:
   void CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr);
 
   // Standalone Memory Editor window
-  void DrawWindow(const char* title, uint8_t* mem_data, size_t mem_size, size_t base_display_addr = 0x0000);
+  void BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr = 0, ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar);
 
   // Memory Editor contents only
   void DrawContents(uint8_t* mem_data, size_t mem_size, size_t base_display_addr = 0x0000);

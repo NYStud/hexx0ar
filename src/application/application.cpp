@@ -43,8 +43,9 @@ void Application::start(int argc, const char** argv) {
   m_running = true;
 
   static HexEdit hexedit;
-  hexedit.Highlights.emplace_back(std::make_tuple(30, 50, IM_COL32(255,0,0,40)));
-  //hexedit.Highlights.emplace_back(std::make_tuple(100, 180, IM_COL32(0,255,0,40)));
+
+  hexedit.ReadOnly = true;
+  hexedit.OptShowAscii = false;
 
   while(m_running) {
     m_ticks = SDL_GetTicks();
@@ -56,15 +57,30 @@ void Application::start(int argc, const char** argv) {
 
     m_uirenderer.update(m_delta);
 
+    ImGui::ShowDemoWindow();
+
     ImGui::Begin("debug info: ");
+    ImGui::SetWindowPos(ImVec2(2*(m_wnd.getWidth()/3),m_wnd.getHeight()/2));
+    if(m_wnd.getWidth() && m_wnd.getHeight()) {
+      ImGui::SetWindowSize(ImVec2(m_wnd.getWidth()/3, m_wnd.getHeight()/2));
+    }
+
     auto str = std::to_string(m_delta) + " ms";
     ImGui::Text("time per frame: %s", str.c_str());
     ImGui::Text("clicked %d", hexedit.Clicked);
     ImGui::Text("clickstart %d", hexedit.ClickStartPos);
     ImGui::Text("clickpos %d", hexedit.ClickCurrentPos);
+
     ImGui::End();
 
-    ImGui::Begin("Hexedit", NULL, ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove);
+    hexedit.BeginWindow("Hexedit", (unsigned char*)this, sizeof(*this), (size_t)this,
+                        ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
+                        ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
+
+    ImGui::SetWindowPos(ImVec2(0,0));
+    if(m_wnd.getWidth() && m_wnd.getHeight()) {
+      ImGui::SetWindowSize(ImVec2(m_wnd.getWidth()/3, m_wnd.getHeight()));
+    }
 
     if (ImGui::BeginMenuBar())
     {
@@ -77,9 +93,22 @@ void Application::start(int argc, const char** argv) {
       ImGui::EndMenuBar();
     }
 
-    hexedit.ReadOnly = true;
-    hexedit.DrawContents((unsigned char*)this, sizeof(*this), (size_t)this);
+    ImGui::End();
 
+    ImGui::Begin("View", NULL, ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
+                               ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
+    ImGui::SetWindowPos(ImVec2(m_wnd.getWidth()/3,0));
+    if(m_wnd.getWidth() && m_wnd.getHeight()) {
+      ImGui::SetWindowSize(ImVec2(m_wnd.getWidth()/3, m_wnd.getHeight()/2));
+    }
+    ImGui::End();
+
+    ImGui::Begin("Graph", NULL, ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
+                                ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
+    ImGui::SetWindowPos(ImVec2(2*(m_wnd.getWidth()/3),0));
+    if(m_wnd.getWidth() && m_wnd.getHeight()) {
+      ImGui::SetWindowSize(ImVec2(m_wnd.getWidth()/3, m_wnd.getHeight()/2));
+    }
     ImGui::End();
 
     //always render the ui last
