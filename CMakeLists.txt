@@ -40,7 +40,7 @@ include_directories(${GLM_INCLUDE_DIRS})
 include_directories(${MATHGL_INCLUDE_DIRS})
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/dependecies/imgui")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/dependecies/sol")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/dependecies/json/src")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/dependecies/json/include")
 include_directories("${CMAKE_BINARY_DIR}/src/")
 
 link_directories(${Boost_LIBRARY_DIRS})

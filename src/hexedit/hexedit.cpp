@@ -6,6 +6,32 @@
 
 namespace fs = boost::filesystem;
 
+void to_json(json& j, const HexView& v) {
+  j = json{{"name", v.name},
+           {"start", v.start},
+           {"end", v.end},
+           {"color_r", v.color.x},
+           {"color_g", v.color.y},
+           {"color_b", v.color.z},
+           {"color_a", v.color.w}};
+}
+
+void from_json(const json& j, HexView& v) {
+  std::string name = j.at("name").get<std::string>();
+  if(name.size() > sizeof(v.name)-1)
+    name.resize(sizeof(v.name)-1);
+  strcpy(v.name, name.data());
+
+  v.start = j.at("start").get<size_t>();
+  v.end = j.at("end").get<size_t>();
+
+  v.color.x = j.at("color_r").get<float>();
+  v.color.y = j.at("color_g").get<float>();
+  v.color.z = j.at("color_b").get<float>();
+  v.color.w = j.at("color_a").get<float>();
+}
+
+
 HexEdit::HexEdit() {
   // Settings
   Open = true;
@@ -48,6 +74,28 @@ void HexEdit::LoadFile(const char* path) {
   }
 }
 
+void HexEdit::LoadProject() {
+  if(fs::exists(fs::path(project_path))) {
+    std::ifstream f(project_path);
+    json j;
+    f >> j;
+
+    m_views.clear();
+    for(auto& element : j["views"]) {
+      m_views.push_back(element);
+    }
+  }
+}
+
+void HexEdit::Save() {
+  std::ofstream f(project_path);
+  json j;
+
+  j["views"] = m_views;
+
+  f << j;
+}
+
 void HexEdit::CalcSizes(Sizes &s) {
   ImGuiStyle& style = ImGui::GetStyle();
   s.AddrDigitsCount = OptAddrDigitsCount;
@@ -88,6 +136,14 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
       {
         if (ImGui::MenuItem("Open")) {
           file_open_dialog = true;
+        }
+
+        if(ImGui::MenuItem("Save Project")) {
+          Save();
+        }
+
+        if(ImGui::MenuItem("Load Project")) {
+          LoadProject();
         }
 
         if (ImGui::MenuItem("Close")) {
@@ -194,7 +250,7 @@ void HexEdit::DrawHexEditContents() {
       hv.id = m_views.size();
       hv.start = std::min(m_click_start, m_click_current);
       hv.end = std::max(m_click_start, m_click_current);
-      hv.color = ImVec4(0,128,128,128);
+      hv.color = ImColor(IM_COL32(0,128,128,128));
       m_views.push_back(hv);
 
       m_clicked = false;
@@ -247,8 +303,7 @@ void HexEdit::DrawHexEditContents() {
             }
           }
 
-          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight),
-                                   IM_COL32(v.color.x, v.color.y, v.color.z, v.color.w));
+          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), ImColor(v.color));
         }
       };
 
@@ -256,7 +311,7 @@ void HexEdit::DrawHexEditContents() {
       strcpy(hv.name, "New View");
       hv.start = std::min(m_click_start, m_click_current);
       hv.end = std::max(m_click_start, m_click_current);
-      hv.color = ImVec4(255,0,0,128);
+      hv.color = ImColor(IM_COL32(255,0,0,128));
 
       highlight_fnc(hv);
       for(auto v : m_views)

@@ -23,12 +23,15 @@ void Application::start(int argc, const char** argv) {
   po::variables_map vm;
 
   std::string file_path;
+  std::string project_path;
   try
   {
     desc.add_options()
       ("help,h", "Help screen")
       ("file", po::value<std::string>(&file_path)->default_value("hexx0ar"),
-       "path to the file the hex editor loads");
+       "path to the file the hex editor loads")
+      ("project", po::value<std::string>(&project_path)->default_value("project.json"),
+              "path to the configuration file storing the hexviews");
 
     store(parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
@@ -77,6 +80,7 @@ void Application::start(int argc, const char** argv) {
   hexedit.OptShowAscii = false;
 
   hexedit.LoadFile(file_path.c_str());
+  hexedit.project_path = project_path;
 
   while(m_running) {
     m_ticks = SDL_GetTicks();
