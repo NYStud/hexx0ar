@@ -77,8 +77,8 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
   ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(s.WindowWidth, FLT_MAX));
 
   Open = true;
-  if (ImGui::Begin(title, &Open,ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
-                                ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar))
+  if (ImGui::Begin(title, &Open,ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoTitleBar|
+                                ImGuiWindowFlags_NoScrollbar))
   {
     /* menu bar and file handling */
     bool file_open_dialog = false;
@@ -91,10 +91,12 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
         }
 
         if (ImGui::MenuItem("Close")) {
-
+          if(mem_data)
+            free(mem_data);
+          mem_data = NULL;
+          mem_size = 0;
         }
         if (ImGui::MenuItem("Quit")) {
-          //yolo
           exit(0);
         }
         ImGui::EndMenu();
