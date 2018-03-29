@@ -106,6 +106,8 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
           mem_data = (uint8_t*)malloc(fsize);
 
           mem_size = fsize;
+
+          f.read((char*)mem_data, fsize);
         }
 
         ImGui::CloseCurrentPopup();
