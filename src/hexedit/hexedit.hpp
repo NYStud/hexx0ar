@@ -9,6 +9,7 @@
 #include "imgui.h"
 #include <vector>
 #include <tuple>
+#include <functional>
 
 struct HexView {
   std::string name;
@@ -36,8 +37,8 @@ public:
   bool            OptGreyOutZeroes;                       // = true   //
   int             OptMidRowsCount;                        // = 8      // set to 0 to disable extra spacing between every mid-rows
   int             OptAddrDigitsCount;                     // = 0      // number of addr digits to display (default calculated based on maximum displayed addr)
-  uint8_t         (*ReadFn)(uint8_t* data, size_t off);        // = NULL   // optional handler to read uint8_ts
-  void            (*WriteFn)(uint8_t* data, size_t off, uint8_t d); // = NULL   // optional handler to write uint8_ts
+  std::function<uint8_t(uint8_t* data, size_t off)> ReadFn;
+  std::function<void(uint8_t* data, size_t off, uint8_t d)> WriteFn;
 
   bool            ContentsWidthChanged;
   char            DataInputBuf[32];

@@ -11,8 +11,8 @@ HexEdit::HexEdit() {
   OptGreyOutZeroes = true;
   OptMidRowsCount = 8;
   OptAddrDigitsCount = 0;
-  ReadFn = NULL;
-  WriteFn = NULL;
+  ReadFn = [](uint8_t* data, size_t off) -> uint8_t { return data[off]; };
+  // todo: writefn
 
   // State/Internals
   ContentsWidthChanged = false;
@@ -118,10 +118,9 @@ void HexEdit::DrawHexEditContents(uint8_t *mem_data, size_t mem_size, size_t bas
 
   const int line_total_count = (int)((mem_size + Rows - 1) / Rows);
   ImGuiListClipper clipper(line_total_count, s.LineHeight);
-  const size_t visible_start_addr = clipper.DisplayStart * Rows;
-  const size_t visible_end_addr = clipper.DisplayEnd * Rows;
 
-  bool data_next = false;
+  //const size_t visible_start_addr = clipper.DisplayStart * Rows;
+  //const size_t visible_end_addr = clipper.DisplayEnd * Rows;
 
   if(ImGui::IsMouseClicked(1)) {
     ImGui::OpenPopup("##contextmenu");
@@ -194,7 +193,7 @@ void HexEdit::DrawHexEditContents(uint8_t *mem_data, size_t mem_size, size_t bas
         highlight_fnc(v);
 
       // NB: The trailing space is not visible but ensure there's no gap that the mouse cannot click on.
-      uint8_t b = ReadFn ? ReadFn(mem_data, addr) : mem_data[addr];
+      uint8_t b = ReadFn(mem_data, addr);
 
       if (OptShowHexII)
       {
@@ -247,12 +246,13 @@ void HexEdit::DrawHexEditContents(uint8_t *mem_data, size_t mem_size, size_t bas
       ImGui::PopID();
       for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
       {
-        unsigned char c = ReadFn ? ReadFn(mem_data, addr) : mem_data[addr];
+        unsigned char c = ReadFn(mem_data, addr);
         char display_c = (c < 32 || c >= 128) ? '.' : c;
         draw_list->AddText(pos, (display_c == '.') ? color_disabled : color_text, &display_c, &display_c + 1);
         pos.x += s.GlyphWidth;
       }
     }
+
   }
   clipper.End();
   ImGui::PopStyleVar(2);
@@ -268,9 +268,11 @@ void HexEdit::DrawHexEditContents(uint8_t *mem_data, size_t mem_size, size_t bas
     ImGui::PushItemWidth(56);
     if (ImGui::DragInt("##rows", &Rows, 0.2f, 4, 32, "%.0f rows")) ContentsWidthChanged = true;
     ImGui::PopItemWidth();
+
     ImGui::Checkbox("Show HexII", &OptShowHexII);
     if (ImGui::Checkbox("Show Ascii", &OptShowAscii)) ContentsWidthChanged = true;
     ImGui::Checkbox("Grey out zeroes", &OptGreyOutZeroes);
+
     ImGui::EndPopup();
   }
 
