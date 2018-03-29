@@ -27,6 +27,10 @@ public:
   // all the current views
   std::vector<HexView> m_views;
 
+  uint8_t* mem_data = NULL;
+  size_t mem_size = 0;
+  size_t base_display_addr = 0;
+
   // original memory editor settings
   // todo: refactor
   bool            Open;                                   // = true   // set to false when DrawWindow() was closed. ignore if not using DrawWindow
@@ -68,13 +72,13 @@ public:
     float   WindowWidth;
   };
 
-  void CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr);
+  void CalcSizes(Sizes& s);
 
   // creates everything ( hexedit, view & graph )
-  void BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr, size_t w, size_t h);
+  void BeginWindow(const char *title, size_t w, size_t h);
 
   // renders the content of the hex editor window
-  void DrawHexEditContents(uint8_t* mem_data, size_t mem_size, size_t base_display_addr);
+  void DrawHexEditContents();
   // renders the content of the hex view window
   void DrawHexViewContents();
 };

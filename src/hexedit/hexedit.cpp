@@ -1,5 +1,10 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <cstring>
+#include <application/log.hpp>
 #include "hexedit.hpp"
+
+namespace fs = boost::filesystem;
 
 HexEdit::HexEdit() {
   // Settings
@@ -11,7 +16,7 @@ HexEdit::HexEdit() {
   OptGreyOutZeroes = true;
   OptMidRowsCount = 8;
   OptAddrDigitsCount = 0;
-  ReadFn = [](uint8_t* data, size_t off) -> uint8_t { return data[off]; };
+  ReadFn = [](uint8_t* data, size_t off) -> uint8_t { return (data != 0) ? data[off] : 0; };
   // todo: writefn
 
   // State/Internals
@@ -21,7 +26,7 @@ HexEdit::HexEdit() {
   GotoAddr = (size_t)-1;
 }
 
-void HexEdit::CalcSizes(Sizes &s, size_t mem_size, size_t base_display_addr) {
+void HexEdit::CalcSizes(Sizes &s) {
   ImGuiStyle& style = ImGui::GetStyle();
   s.AddrDigitsCount = OptAddrDigitsCount;
   if (s.AddrDigitsCount == 0)
@@ -44,22 +49,78 @@ void HexEdit::CalcSizes(Sizes &s, size_t mem_size, size_t base_display_addr) {
   s.WindowWidth = s.PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + s.GlyphWidth;
 }
 
-void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr,
-                          size_t w, size_t h) {
+void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
   Sizes s;
-  CalcSizes(s, mem_size, base_display_addr);
+  CalcSizes(s);
   ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(s.WindowWidth, FLT_MAX));
 
   Open = true;
   if (ImGui::Begin(title, &Open,ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
                                 ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar))
   {
+    /* menu bar and file handling */
+    bool file_open_dialog = false;
+    if (ImGui::BeginMenuBar())
+    {
+      if (ImGui::BeginMenu("File"))
+      {
+        if (ImGui::MenuItem("Open")) {
+          file_open_dialog = true;
+        }
+
+        if (ImGui::MenuItem("Close")) {
+
+        }
+        if (ImGui::MenuItem("Quit")) {
+          //yolo
+          exit(0);
+        }
+        ImGui::EndMenu();
+      }
+      ImGui::EndMenuBar();
+    }
+
+    if (file_open_dialog)
+      ImGui::OpenPopup("Open File");
+    if (ImGui::BeginPopupModal("Open File", NULL, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+      static char path[4096];
+      ImGui::Text("input file path\n\n");
+      ImGui::Separator();
+      ImGui::InputText("##path", path, sizeof(path));
+
+      if (ImGui::Button("OK", ImVec2(120,0))) {
+        if(fs::exists(fs::path(path))) {
+          std::ifstream f(path, std::ios::binary);
+
+          auto fsize = f.tellg();
+          f.seekg(0, std::ios::end);
+          fsize = f.tellg() - fsize;
+
+          f.seekg(0, std::ios::beg);
+
+          if(mem_data) {
+            free(mem_data);
+          }
+
+          mem_data = (uint8_t*)malloc(fsize);
+
+          mem_size = fsize;
+        }
+
+        ImGui::CloseCurrentPopup();
+      }
+      if (ImGui::Button("Cancel", ImVec2(120,0))) { ImGui::CloseCurrentPopup(); }
+
+      ImGui::EndPopup();
+    }
+
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsMouseClicked(1))
       ImGui::OpenPopup("context");
-    DrawHexEditContents(mem_data, mem_size, base_display_addr);
+    DrawHexEditContents();
     if (ContentsWidthChanged)
     {
-      CalcSizes(s, mem_size, base_display_addr);
+      CalcSizes(s);
       ImGui::SetWindowSize(ImVec2(s.WindowWidth, ImGui::GetWindowSize().y));
     }
   }
@@ -68,21 +129,11 @@ void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size,
     ImGui::SetWindowSize(ImVec2(w/3, h));
   }
 
-  if (ImGui::BeginMenuBar())
-  {
-    if (ImGui::BeginMenu("View"))
-    {
-      if (ImGui::MenuItem("New")) { }
-      if (ImGui::MenuItem("Close")) { }
-      ImGui::EndMenu();
-    }
-    ImGui::EndMenuBar();
-  }
-
   ImGui::End();
 
   ImGui::Begin("View", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
                              ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
+
   ImGui::SetWindowPos(ImVec2(w/3,0));
   if(w && h) {
     ImGui::SetWindowSize(ImVec2(w/3, h/2));
@@ -105,9 +156,9 @@ void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size,
 #define _PRISizeT   "zX"
 #endif
 
-void HexEdit::DrawHexEditContents(uint8_t *mem_data, size_t mem_size, size_t base_display_addr) {
+void HexEdit::DrawHexEditContents() {
   Sizes s;
-  CalcSizes(s, mem_size, base_display_addr);
+  CalcSizes(s);
   ImGuiStyle& style = ImGui::GetStyle();
 
   const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing(); // 1 separator, 1 input text
@@ -330,6 +381,8 @@ void HexEdit::DrawHexViewContents() {
     ImGui::ColorEdit4("view color", &m_views[selected].color.x);
 
     ImGui::InputText("name", m_views[selected].name, sizeof(m_views[selected].name));
+
+    //ImGui::InputText("hexadecimal", 0,0, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
   }
 }
 

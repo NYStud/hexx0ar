@@ -75,8 +75,7 @@ void Application::start(int argc, const char** argv) {
 
     ImGui::End();
 
-    hexedit.BeginWindow("Hexedit", (unsigned char*)this, sizeof(*this), (size_t)this,
-                        m_wnd.getWidth(), m_wnd.getHeight());
+    hexedit.BeginWindow("Hexedit", m_wnd.getWidth(), m_wnd.getHeight());
 
 
     //always render the ui last
