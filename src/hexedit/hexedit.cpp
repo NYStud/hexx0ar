@@ -246,8 +246,13 @@ void HexEdit::DrawHexEditContents() {
     ImGui::PushItemWidth(60);
     if(ImGui::Button("create view")) {
       HexView hv;
-      strcpy(hv.name, "New View");
       hv.id = m_views.size();
+      auto name = "New View " + std::to_string(hv.id);
+
+      if(name.size() > sizeof(hv.name)-1)
+        name.resize(sizeof(hv.name)-1);
+
+      strcpy(hv.name, name.data());
       hv.start = std::min(m_click_start, m_click_current);
       hv.end = std::max(m_click_start, m_click_current);
       hv.color = ImColor(IM_COL32(0,128,128,128));
@@ -256,6 +261,8 @@ void HexEdit::DrawHexEditContents() {
       m_clicked = false;
       m_click_start = 0;
       m_click_current = 0;
+
+      m_selected_view = m_views.size()-1;
     }
     ImGui::EndPopup();
   }
