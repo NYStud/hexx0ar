@@ -1,5 +1,11 @@
 #include "application.hpp"
 #include "hexedit/hexedit.hpp"
+#include <boost/program_options.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+
+namespace fs = boost::filesystem;
+namespace po = boost::program_options;
 
 void khr_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *msg,
                         const void *data) {
@@ -13,6 +19,29 @@ void khr_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity, 
 }
 
 void Application::start(int argc, const char** argv) {
+  po::options_description desc{"Options"};
+  po::variables_map vm;
+
+  std::string file_path;
+  try
+  {
+    desc.add_options()
+      ("help,h", "Help screen")
+      ("config,c", po::value<std::string>(&file_path)->default_value("hexx0ar"),
+       "path to the game config file. either absolute or relative to the dir the game is executed in.");
+
+    store(parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+  }
+  catch (const po::error &ex)
+  {
+    LOG_ERROR(ex.what());
+  }
+
+  if (vm.count("help")) {
+    std::cout << desc << '\n';
+    exit(0);
+  }
 
   m_wnd.onClose.connect([this](){ m_running = false; });
   m_wnd.onResize.connect([this](unsigned int w, unsigned int h, unsigned int dw, unsigned int dh) {
@@ -47,6 +76,8 @@ void Application::start(int argc, const char** argv) {
   hexedit.ReadOnly = true;
   hexedit.OptShowAscii = false;
 
+  hexedit.LoadFile(file_path.c_str());
+
   while(m_running) {
     m_ticks = SDL_GetTicks();
 
@@ -76,7 +107,6 @@ void Application::start(int argc, const char** argv) {
     ImGui::End();
 
     hexedit.BeginWindow("Hexedit", m_wnd.getWidth(), m_wnd.getHeight());
-
 
     //always render the ui last
     m_uirenderer.render();

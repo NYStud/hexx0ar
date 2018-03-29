@@ -72,6 +72,8 @@ public:
     float   WindowWidth;
   };
 
+  void LoadFile(const char* path);
+
   void CalcSizes(Sizes& s);
 
   // creates everything ( hexedit, view & graph )

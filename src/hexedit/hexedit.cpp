@@ -26,6 +26,28 @@ HexEdit::HexEdit() {
   GotoAddr = (size_t)-1;
 }
 
+void HexEdit::LoadFile(const char* path) {
+  if(fs::exists(fs::path(path))) {
+    std::ifstream f(path, std::ios::binary);
+
+    auto fsize = f.tellg();
+    f.seekg(0, std::ios::end);
+    fsize = f.tellg() - fsize;
+
+    f.seekg(0, std::ios::beg);
+
+    if(mem_data) {
+      free(mem_data);
+    }
+
+    mem_data = (uint8_t*)malloc(fsize);
+
+    mem_size = fsize;
+
+    f.read((char*)mem_data, fsize);
+  }
+}
+
 void HexEdit::CalcSizes(Sizes &s) {
   ImGuiStyle& style = ImGui::GetStyle();
   s.AddrDigitsCount = OptAddrDigitsCount;
@@ -90,25 +112,7 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
       ImGui::InputText("##path", path, sizeof(path));
 
       if (ImGui::Button("OK", ImVec2(120,0))) {
-        if(fs::exists(fs::path(path))) {
-          std::ifstream f(path, std::ios::binary);
-
-          auto fsize = f.tellg();
-          f.seekg(0, std::ios::end);
-          fsize = f.tellg() - fsize;
-
-          f.seekg(0, std::ios::beg);
-
-          if(mem_data) {
-            free(mem_data);
-          }
-
-          mem_data = (uint8_t*)malloc(fsize);
-
-          mem_size = fsize;
-
-          f.read((char*)mem_data, fsize);
-        }
+        LoadFile(path);
 
         ImGui::CloseCurrentPopup();
       }
