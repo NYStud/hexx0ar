@@ -236,6 +236,11 @@ void HexEdit::DrawHexEditContents() {
             if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
               highlight_width += s.SpacingBetweenMidRows;
           }
+
+          if (ImGui::IsItemHovered()) {
+            ImGui::SetTooltip(v.name);
+          }
+
           draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), ImGui::GetColorU32(v.color));
         }
       };
