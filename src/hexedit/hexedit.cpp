@@ -47,13 +47,14 @@ void HexEdit::CalcSizes(Sizes &s, size_t mem_size, size_t base_display_addr) {
 }
 
 void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr,
-                          size_t w, size_t h, ImGuiWindowFlags flags) {
+                          size_t w, size_t h) {
   Sizes s;
   CalcSizes(s, mem_size, base_display_addr);
   ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(s.WindowWidth, FLT_MAX));
 
   Open = true;
-  if (ImGui::Begin(title, &Open, flags))
+  if (ImGui::Begin(title, &Open,ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_ResizeFromAnySide|
+                                ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar))
   {
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsMouseClicked(1))
       ImGui::OpenPopup("context");
@@ -69,7 +70,6 @@ void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size,
     ImGui::SetWindowSize(ImVec2(w/3, h));
   }
 
-  /*
   if (ImGui::BeginMenuBar())
   {
     if (ImGui::BeginMenu("View"))
@@ -80,7 +80,6 @@ void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size,
     }
     ImGui::EndMenuBar();
   }
-  */
 
   ImGui::End();
 
@@ -154,12 +153,10 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
   if (ImGui::BeginPopup("##contextmenu"))
   {
     ImGui::PushItemWidth(56);
-    if(ImGui::Button("test")) {
-      Highlights.emplace_back(std::make_tuple(std::min(ClickStartPos, ClickCurrentPos),
-                                              std::max(ClickStartPos, ClickCurrentPos), IM_COL32(0,255,255,128)));
-      Clicked = false;
-      ClickStartPos = 0;
-      ClickCurrentPos = 0;
+    if(ImGui::Button("create view")) {
+      m_clicked = false;
+      m_click_start = 0;
+      m_click_current = 0;
     }
     ImGui::EndPopup();
   }
@@ -185,13 +182,10 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
         uint8_t_pos_x += (n / OptMidRowsCount) * s.SpacingBetweenMidRows;
       ImGui::SameLine(uint8_t_pos_x);
 
-      //todo refactor!
-      // highlight current selection
-      {
-        size_t min = std::min(ClickStartPos, ClickCurrentPos);
-        size_t max = std::max(ClickStartPos, ClickCurrentPos);
-        ImU32 color = IM_COL32(255,0,0,128);
-        //std::tie(min, max, color) = h;
+      // hightlight all views
+      for(auto v : m_views) {
+        auto min = v.start;
+        auto max = v.end;
         if((addr >= min && addr < max)) {
           ImVec2 pos = ImGui::GetCursorScreenPos();
           float highlight_width = s.GlyphWidth * 2;
@@ -202,25 +196,7 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
             if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
               highlight_width += s.SpacingBetweenMidRows;
           }
-          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), color);
-        }
-      }
-      // highlight specified areas
-      for(auto h : Highlights) {
-        size_t min, max;
-        ImU32 color;
-        std::tie(min, max, color) = h;
-        if((addr >= min && addr < max)) {
-          ImVec2 pos = ImGui::GetCursorScreenPos();
-          float highlight_width = s.GlyphWidth * 2;
-          bool is_next_uint8_t_highlighted =  (addr + 1 < mem_size) && ((max != (size_t)-1 && addr + 1 < max));
-          if (is_next_uint8_t_highlighted || (n + 1 == Rows))
-          {
-            highlight_width = s.HexCellWidth;
-            if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
-              highlight_width += s.SpacingBetweenMidRows;
-          }
-          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), color);
+          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), v.color);
         }
       }
 
@@ -239,24 +215,24 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
         ImGui::PushItemWidth(s.GlyphWidth * 2);
         struct UserData
         {
-            // FIXME: We should have a way to retrieve the text edit cursor position more easily in the API, this is rather tedious. This is such a ugly mess we may be better off not using InputText() at all here.
-            static int Callback(ImGuiTextEditCallbackData* data)
+          // FIXME: We should have a way to retrieve the text edit cursor position more easily in the API, this is rather tedious. This is such a ugly mess we may be better off not using InputText() at all here.
+          static int Callback(ImGuiTextEditCallbackData* data)
+          {
+            UserData* user_data = (UserData*)data->UserData;
+            if (!data->HasSelection())
+              user_data->CursorPos = data->CursorPos;
+            if (data->SelectionStart == 0 && data->SelectionEnd == data->BufTextLen)
             {
-              UserData* user_data = (UserData*)data->UserData;
-              if (!data->HasSelection())
-                user_data->CursorPos = data->CursorPos;
-              if (data->SelectionStart == 0 && data->SelectionEnd == data->BufTextLen)
-              {
-                // When not editing a uint8_t, always rewrite its content (this is a bit tricky, since InputText technically "owns" the master copy of the buffer we edit it in there)
-                data->DeleteChars(0, data->BufTextLen);
-                data->InsertChars(0, user_data->CurrentBufOverwrite);
-                data->SelectionStart = 0;
-                data->SelectionEnd = data->CursorPos = 2;
-              }
-              return 0;
+              // When not editing a uint8_t, always rewrite its content (this is a bit tricky, since InputText technically "owns" the master copy of the buffer we edit it in there)
+              data->DeleteChars(0, data->BufTextLen);
+              data->InsertChars(0, user_data->CurrentBufOverwrite);
+              data->SelectionStart = 0;
+              data->SelectionEnd = data->CursorPos = 2;
             }
-            char   CurrentBufOverwrite[3];  // Input
-            int    CursorPos;               // Output
+            return 0;
+          }
+          char   CurrentBufOverwrite[3];  // Input
+          int    CursorPos;               // Output
         };
         UserData user_data;
         user_data.CursorPos = -1;
@@ -315,16 +291,16 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
         // text selection
         if(ImGui::IsMouseDown(0)) {
           if (ImGui::IsItemHovered()) {
-            if (!Clicked) {
-              Clicked = true;
-              ClickStartPos = addr;
-              ClickCurrentPos = addr+1;
+            if (!m_clicked) {
+              m_clicked = true;
+              m_click_start = addr;
+              m_click_current = addr+1;
             } else {
-              ClickCurrentPos = addr+1;
+              m_click_current = addr+1;
             }
           }
         } else {
-          Clicked = false;
+          m_clicked = false;
         }
 
       }

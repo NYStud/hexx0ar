@@ -10,66 +10,70 @@
 #include <vector>
 #include <tuple>
 
-struct View {
-    size_t start, end;
-    
+struct HexView {
+  std::string name;
+  size_t start, end;
+  ImU32 color;
 };
 
-struct HexEdit
-{
+struct HexEdit {
 private:
+  // used for view selection
+  bool m_clicked = false;
+  size_t m_click_start, m_click_current;
+
 public:
-    bool            Open;                                   // = true   // set to false when DrawWindow() was closed. ignore if not using DrawWindow
-    bool            ReadOnly;                               // = false  // set to true to disable any editing
-    int             Rows;                                   // = 16     //
-    bool            OptShowAscii;                           // = true   //
-    bool            OptShowHexII;                           // = false  //
-    bool            OptGreyOutZeroes;                       // = true   //
-    int             OptMidRowsCount;                        // = 8      // set to 0 to disable extra spacing between every mid-rows
-    int             OptAddrDigitsCount;                     // = 0      // number of addr digits to display (default calculated based on maximum displayed addr)
-    uint8_t              (*ReadFn)(uint8_t* data, size_t off);        // = NULL   // optional handler to read uint8_ts
-    void            (*WriteFn)(uint8_t* data, size_t off, uint8_t d); // = NULL   // optional handler to write uint8_ts
+  // all the current views
+  std::vector<HexView> m_views;
 
-    bool            ContentsWidthChanged;
-    size_t          DataEditingAddr;
-    bool            DataEditingTakeFocus;
-    char            DataInputBuf[32];
-    char            AddrInputBuf[32];
-    size_t          GotoAddr;
+  // original memory editor settings
+  // todo: refactor
+  bool            Open;                                   // = true   // set to false when DrawWindow() was closed. ignore if not using DrawWindow
+  bool            ReadOnly;                               // = false  // set to true to disable any editing
+  int             Rows;                                   // = 16     //
+  bool            OptShowAscii;                           // = true   //
+  bool            OptShowHexII;                           // = false  //
+  bool            OptGreyOutZeroes;                       // = true   //
+  int             OptMidRowsCount;                        // = 8      // set to 0 to disable extra spacing between every mid-rows
+  int             OptAddrDigitsCount;                     // = 0      // number of addr digits to display (default calculated based on maximum displayed addr)
+  uint8_t              (*ReadFn)(uint8_t* data, size_t off);        // = NULL   // optional handler to read uint8_ts
+  void            (*WriteFn)(uint8_t* data, size_t off, uint8_t d); // = NULL   // optional handler to write uint8_ts
 
-    std::vector<std::tuple<size_t, size_t, ImU32>> Highlights;
+  bool            ContentsWidthChanged;
+  size_t          DataEditingAddr;
+  bool            DataEditingTakeFocus;
+  char            DataInputBuf[32];
+  char            AddrInputBuf[32];
+  size_t          GotoAddr;
 
-    bool Clicked = false;
-    size_t ClickStartPos, ClickCurrentPos;
+  HexEdit();
 
-    HexEdit();
+  void GotoAddrAndHighlight(size_t addr_min, size_t addr_max)
+  {
+    GotoAddr = addr_min;
+    //HighlightMin = addr_min;
+    //HighlightMax = addr_max;
+  }
 
-    void GotoAddrAndHighlight(size_t addr_min, size_t addr_max)
-    {
-      GotoAddr = addr_min;
-      //HighlightMin = addr_min;
-      //HighlightMax = addr_max;
-    }
+  struct Sizes
+  {
+    int     AddrDigitsCount;
+    float   LineHeight;
+    float   GlyphWidth;
+    float   HexCellWidth;
+    float   SpacingBetweenMidRows;
+    float   PosHexStart;
+    float   PosHexEnd;
+    float   PosAsciiStart;
+    float   PosAsciiEnd;
+    float   WindowWidth;
+  };
 
-    struct Sizes
-    {
-        int     AddrDigitsCount;
-        float   LineHeight;
-        float   GlyphWidth;
-        float   HexCellWidth;
-        float   SpacingBetweenMidRows;
-        float   PosHexStart;
-        float   PosHexEnd;
-        float   PosAsciiStart;
-        float   PosAsciiEnd;
-        float   WindowWidth;
-    };
+  void CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr);
 
-    void CalcSizes(Sizes& s, size_t mem_size, size_t base_display_addr);
+  // creates everything ( hexedit, view & graph )
+  void BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr, size_t w, size_t h);
 
-    // Standalone Memory Editor window
-    void BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr, size_t w, size_t h, ImGuiWindowFlags flags = ImGuiWindowFlags_NoScrollbar);
-
-    // Memory Editor contents only
-    void DrawContents(uint8_t* mem_data, size_t mem_size, size_t base_display_addr = 0x0000);
+  // renders the content of the hex editor window
+  void DrawContents(uint8_t* mem_data, size_t mem_size, size_t base_display_addr = 0x0000);
 };
