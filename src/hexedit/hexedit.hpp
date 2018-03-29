@@ -36,12 +36,10 @@ public:
   bool            OptGreyOutZeroes;                       // = true   //
   int             OptMidRowsCount;                        // = 8      // set to 0 to disable extra spacing between every mid-rows
   int             OptAddrDigitsCount;                     // = 0      // number of addr digits to display (default calculated based on maximum displayed addr)
-  uint8_t              (*ReadFn)(uint8_t* data, size_t off);        // = NULL   // optional handler to read uint8_ts
+  uint8_t         (*ReadFn)(uint8_t* data, size_t off);        // = NULL   // optional handler to read uint8_ts
   void            (*WriteFn)(uint8_t* data, size_t off, uint8_t d); // = NULL   // optional handler to write uint8_ts
 
   bool            ContentsWidthChanged;
-  size_t          DataEditingAddr;
-  bool            DataEditingTakeFocus;
   char            DataInputBuf[32];
   char            AddrInputBuf[32];
   size_t          GotoAddr;
@@ -75,5 +73,7 @@ public:
   void BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr, size_t w, size_t h);
 
   // renders the content of the hex editor window
-  void DrawContents(uint8_t* mem_data, size_t mem_size, size_t base_display_addr = 0x0000);
+  void DrawHexEditContents(uint8_t* mem_data, size_t mem_size, size_t base_display_addr);
+  // renders the content of the hex view window
+  void DrawHexViewContents();
 };
