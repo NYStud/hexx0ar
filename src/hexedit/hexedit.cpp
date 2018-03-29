@@ -189,9 +189,10 @@ void HexEdit::DrawHexEditContents() {
     if(ImGui::Button("create view")) {
       HexView hv;
       strcpy(hv.name, "New View");
+      hv.id = m_views.size();
       hv.start = std::min(m_click_start, m_click_current);
       hv.end = std::max(m_click_start, m_click_current);
-      hv.color = ImVec4(0,255,255,128);
+      hv.color = ImVec4(0,128,128,128);
       m_views.push_back(hv);
 
       m_clicked = false;
@@ -238,10 +239,14 @@ void HexEdit::DrawHexEditContents() {
           }
 
           if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip(v.name);
+            ImGui::SetTooltip("%s", v.name);
+            if(ImGui::IsMouseClicked(0)) {
+              m_selected_view = v.id;
+            }
           }
 
-          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), ImGui::GetColorU32(v.color));
+          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight),
+                                   IM_COL32(v.color.x, v.color.y, v.color.z, v.color.w));
         }
       };
 
@@ -371,27 +376,25 @@ void HexEdit::DrawHexEditContents() {
 
 void HexEdit::DrawHexViewContents() {
   if(m_views.size()) {
-    static int selected = 0;
+    if(m_selected_view >= m_views.size())
+      m_selected_view = 0;
 
-    if(selected >= m_views.size())
-      selected = 0;
-
-    if (ImGui::BeginCombo("##hexview", m_views[selected].name)) // The second parameter is the label previewed before opening the combo.
+    if (ImGui::BeginCombo("##hexview", m_views[m_selected_view].name)) // The second parameter is the label previewed before opening the combo.
     {
-      for (int n = 0; n < m_views.size(); n++)
+      for (auto n = 0; n < m_views.size(); n++)
       {
-        if (ImGui::Selectable(m_views[n].name, n==selected))
-          selected = n;
+        if (ImGui::Selectable(m_views[n].name, n==m_selected_view))
+          m_selected_view = n;
 
-        if (n==selected)
+        if (n==m_selected_view)
           ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
       }
       ImGui::EndCombo();
     }
 
-    ImGui::ColorEdit4("view color", &m_views[selected].color.x);
+    ImGui::ColorEdit4("view color", &m_views[m_selected_view].color.x);
 
-    ImGui::InputText("name", m_views[selected].name, sizeof(m_views[selected].name));
+    ImGui::InputText("name", m_views[m_selected_view].name, sizeof(m_views[m_selected_view].name));
 
     //ImGui::InputText("hexadecimal", 0,0, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
   }

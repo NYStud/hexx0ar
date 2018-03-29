@@ -28,7 +28,7 @@ void Application::start(int argc, const char** argv) {
     desc.add_options()
       ("help,h", "Help screen")
       ("file", po::value<std::string>(&file_path)->default_value("hexx0ar"),
-       "path to the game config file. either absolute or relative to the dir the game is executed in.");
+       "path to the file the hex editor loads");
 
     store(parse_command_line(argc, argv, desc), vm);
     po::notify(vm);

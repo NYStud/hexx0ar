@@ -12,6 +12,7 @@
 #include <functional>
 
 struct HexView {
+  size_t id;
   char name[256];
   size_t start, end;
   ImVec4 color;
@@ -30,6 +31,8 @@ public:
   uint8_t* mem_data = NULL;
   size_t mem_size = 0;
   size_t base_display_addr = 0;
+
+  size_t m_selected_view = 0;
 
   // original memory editor settings
   // todo: refactor
