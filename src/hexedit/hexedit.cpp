@@ -46,7 +46,8 @@ void HexEdit::CalcSizes(Sizes &s, size_t mem_size, size_t base_display_addr) {
   s.WindowWidth = s.PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + s.GlyphWidth;
 }
 
-void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr, ImGuiWindowFlags flags) {
+void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size, size_t base_display_addr,
+                          size_t w, size_t h, ImGuiWindowFlags flags) {
   Sizes s;
   CalcSizes(s, mem_size, base_display_addr);
   ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(s.WindowWidth, FLT_MAX));
@@ -63,6 +64,41 @@ void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size,
       ImGui::SetWindowSize(ImVec2(s.WindowWidth, ImGui::GetWindowSize().y));
     }
   }
+  ImGui::SetWindowPos(ImVec2(0,0));
+  if(w && h) {
+    ImGui::SetWindowSize(ImVec2(w/3, h));
+  }
+
+  /*
+  if (ImGui::BeginMenuBar())
+  {
+    if (ImGui::BeginMenu("View"))
+    {
+      if (ImGui::MenuItem("New")) { }
+      if (ImGui::MenuItem("Close")) { }
+      ImGui::EndMenu();
+    }
+    ImGui::EndMenuBar();
+  }
+  */
+
+  ImGui::End();
+
+  ImGui::Begin("View", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
+                             ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
+  ImGui::SetWindowPos(ImVec2(w/3,0));
+  if(w && h) {
+    ImGui::SetWindowSize(ImVec2(w/3, h/2));
+  }
+  ImGui::End();
+
+  ImGui::Begin("Graph", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
+                              ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
+  ImGui::SetWindowPos(ImVec2(2*(w/3),0));
+  if(w && h) {
+    ImGui::SetWindowSize(ImVec2(w/3, h/2));
+  }
+  ImGui::End();
 }
 
 #ifdef _MSC_VER
@@ -203,24 +239,24 @@ void HexEdit::DrawContents(uint8_t *mem_data, size_t mem_size, size_t base_displ
         ImGui::PushItemWidth(s.GlyphWidth * 2);
         struct UserData
         {
-          // FIXME: We should have a way to retrieve the text edit cursor position more easily in the API, this is rather tedious. This is such a ugly mess we may be better off not using InputText() at all here.
-          static int Callback(ImGuiTextEditCallbackData* data)
-          {
-            UserData* user_data = (UserData*)data->UserData;
-            if (!data->HasSelection())
-              user_data->CursorPos = data->CursorPos;
-            if (data->SelectionStart == 0 && data->SelectionEnd == data->BufTextLen)
+            // FIXME: We should have a way to retrieve the text edit cursor position more easily in the API, this is rather tedious. This is such a ugly mess we may be better off not using InputText() at all here.
+            static int Callback(ImGuiTextEditCallbackData* data)
             {
-              // When not editing a uint8_t, always rewrite its content (this is a bit tricky, since InputText technically "owns" the master copy of the buffer we edit it in there)
-              data->DeleteChars(0, data->BufTextLen);
-              data->InsertChars(0, user_data->CurrentBufOverwrite);
-              data->SelectionStart = 0;
-              data->SelectionEnd = data->CursorPos = 2;
+              UserData* user_data = (UserData*)data->UserData;
+              if (!data->HasSelection())
+                user_data->CursorPos = data->CursorPos;
+              if (data->SelectionStart == 0 && data->SelectionEnd == data->BufTextLen)
+              {
+                // When not editing a uint8_t, always rewrite its content (this is a bit tricky, since InputText technically "owns" the master copy of the buffer we edit it in there)
+                data->DeleteChars(0, data->BufTextLen);
+                data->InsertChars(0, user_data->CurrentBufOverwrite);
+                data->SelectionStart = 0;
+                data->SelectionEnd = data->CursorPos = 2;
+              }
+              return 0;
             }
-            return 0;
-          }
-          char   CurrentBufOverwrite[3];  // Input
-          int    CursorPos;               // Output
+            char   CurrentBufOverwrite[3];  // Input
+            int    CursorPos;               // Output
         };
         UserData user_data;
         user_data.CursorPos = -1;

@@ -16,21 +16,21 @@ void Application::start(int argc, const char** argv) {
 
   m_wnd.onClose.connect([this](){ m_running = false; });
   m_wnd.onResize.connect([this](unsigned int w, unsigned int h, unsigned int dw, unsigned int dh) {
-    m_uirenderer.onResize(w, h, dw, dh);
+      m_uirenderer.onResize(w, h, dw, dh);
   });
   m_wnd.onClick.connect([this](bool up, int x, int y, uint8_t button, uint8_t state, uint8_t clicks) {
-    m_uirenderer.onClick(up, x, y, button, state, clicks);
+      m_uirenderer.onClick(up, x, y, button, state, clicks);
   });
   m_wnd.onMove.connect([this](int x, int y, int xrel, int yrel) {
-    m_uirenderer.onMove(x, y, xrel, yrel);
+      m_uirenderer.onMove(x, y, xrel, yrel);
   });
   m_wnd.onWheel.connect([this](int x, int y) {
-    m_uirenderer.onWheel(x, y);
+      m_uirenderer.onWheel(x, y);
   });
   m_wnd.onKey.connect(
-    [this](bool up, bool pressed, unsigned int scancode) {
-      m_uirenderer.onKey(up, pressed, scancode);
-    });
+          [this](bool up, bool pressed, unsigned int scancode) {
+              m_uirenderer.onKey(up, pressed, scancode);
+          });
   m_wnd.onTextInput.connect([this](std::string text) { m_uirenderer.onTextInput(text); });
 
   m_wnd.open();
@@ -59,7 +59,8 @@ void Application::start(int argc, const char** argv) {
 
     ImGui::ShowDemoWindow();
 
-    ImGui::Begin("debug info: ");
+    ImGui::Begin("debug info: ", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
+                                       ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
     ImGui::SetWindowPos(ImVec2(2*(m_wnd.getWidth()/3),m_wnd.getHeight()/2));
     if(m_wnd.getWidth() && m_wnd.getHeight()) {
       ImGui::SetWindowSize(ImVec2(m_wnd.getWidth()/3, m_wnd.getHeight()/2));
@@ -73,43 +74,10 @@ void Application::start(int argc, const char** argv) {
 
     ImGui::End();
 
-    hexedit.BeginWindow("Hexedit", (unsigned char*)this, sizeof(*this), (size_t)this,
-                        ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
+    hexedit.BeginWindow("Hexedit", (unsigned char*)this, sizeof(*this), (size_t)this, m_wnd.getWidth(), m_wnd.getHeight(),
+                        ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
                         ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
 
-    ImGui::SetWindowPos(ImVec2(0,0));
-    if(m_wnd.getWidth() && m_wnd.getHeight()) {
-      ImGui::SetWindowSize(ImVec2(m_wnd.getWidth()/3, m_wnd.getHeight()));
-    }
-
-    if (ImGui::BeginMenuBar())
-    {
-      if (ImGui::BeginMenu("View"))
-      {
-        if (ImGui::MenuItem("New")) { /* Do stuff */ }
-        if (ImGui::MenuItem("Close")) { /* Do stuff */ }
-        ImGui::EndMenu();
-      }
-      ImGui::EndMenuBar();
-    }
-
-    ImGui::End();
-
-    ImGui::Begin("View", NULL, ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
-                               ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
-    ImGui::SetWindowPos(ImVec2(m_wnd.getWidth()/3,0));
-    if(m_wnd.getWidth() && m_wnd.getHeight()) {
-      ImGui::SetWindowSize(ImVec2(m_wnd.getWidth()/3, m_wnd.getHeight()/2));
-    }
-    ImGui::End();
-
-    ImGui::Begin("Graph", NULL, ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
-                                ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
-    ImGui::SetWindowPos(ImVec2(2*(m_wnd.getWidth()/3),0));
-    if(m_wnd.getWidth() && m_wnd.getHeight()) {
-      ImGui::SetWindowSize(ImVec2(m_wnd.getWidth()/3, m_wnd.getHeight()/2));
-    }
-    ImGui::End();
 
     //always render the ui last
     m_uirenderer.render();
