@@ -87,6 +87,7 @@ void HexEdit::BeginWindow(const char *title, uint8_t *mem_data, size_t mem_size,
   if(w && h) {
     ImGui::SetWindowSize(ImVec2(w/3, h/2));
   }
+  DrawHexViewContents();
   ImGui::End();
 
   ImGui::Begin("Graph", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
@@ -130,10 +131,10 @@ void HexEdit::DrawHexEditContents(uint8_t *mem_data, size_t mem_size, size_t bas
     ImGui::PushItemWidth(60);
     if(ImGui::Button("create view")) {
       HexView hv;
-      hv.name = "New View";
+      strcpy(hv.name, "New View");
       hv.start = std::min(m_click_start, m_click_current);
       hv.end = std::max(m_click_start, m_click_current);
-      hv.color = IM_COL32(0,255,255,128);
+      hv.color = ImVec4(0,255,255,128);
       m_views.push_back(hv);
 
       m_clicked = false;
@@ -178,15 +179,15 @@ void HexEdit::DrawHexEditContents(uint8_t *mem_data, size_t mem_size, size_t bas
             if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
               highlight_width += s.SpacingBetweenMidRows;
           }
-          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), v.color);
+          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), ImGui::GetColorU32(v.color));
         }
       };
 
       HexView hv;
-      hv.name = "New View";
+      strcpy(hv.name, "New View");
       hv.start = std::min(m_click_start, m_click_current);
       hv.end = std::max(m_click_start, m_click_current);
-      hv.color = IM_COL32(255,0,0,128);
+      hv.color = ImVec4(255,0,0,128);
 
       highlight_fnc(hv);
       for(auto v : m_views)
@@ -304,6 +305,32 @@ void HexEdit::DrawHexEditContents(uint8_t *mem_data, size_t mem_size, size_t bas
 
   // Notify the main window of our ideal child content size (FIXME: we are missing an API to get the contents size from the child)
   ImGui::SetCursorPosX(s.WindowWidth);
+}
+
+void HexEdit::DrawHexViewContents() {
+  if(m_views.size()) {
+    static int selected = 0;
+
+    if(selected >= m_views.size())
+      selected = 0;
+
+    if (ImGui::BeginCombo("##hexview", m_views[selected].name)) // The second parameter is the label previewed before opening the combo.
+    {
+      for (int n = 0; n < m_views.size(); n++)
+      {
+        if (ImGui::Selectable(m_views[n].name, n==selected))
+          selected = n;
+
+        if (n==selected)
+          ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
+      }
+      ImGui::EndCombo();
+    }
+
+    ImGui::ColorEdit4("view color", &m_views[selected].color.x);
+
+    ImGui::InputText("name", m_views[selected].name, sizeof(m_views[selected].name));
+  }
 }
 
 #undef _PRISizeT

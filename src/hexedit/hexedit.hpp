@@ -12,9 +12,9 @@
 #include <functional>
 
 struct HexView {
-  std::string name;
+  char name[256];
   size_t start, end;
-  ImU32 color;
+  ImVec4 color;
 };
 
 struct HexEdit {
