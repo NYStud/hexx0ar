@@ -27,7 +27,7 @@ void Application::start(int argc, const char** argv) {
   {
     desc.add_options()
       ("help,h", "Help screen")
-      ("config,c", po::value<std::string>(&file_path)->default_value("hexx0ar"),
+      ("--file", po::value<std::string>(&file_path)->default_value("hexx0ar"),
        "path to the game config file. either absolute or relative to the dir the game is executed in.");
 
     store(parse_command_line(argc, argv, desc), vm);
