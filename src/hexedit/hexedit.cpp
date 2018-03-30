@@ -3,7 +3,7 @@
 #include <cstring>
 #include <application/log.hpp>
 #include "hexedit.hpp"
-#include "mgl2/mgl.h"
+//#include "mgl2/mgl.h"
 
 namespace fs = boost::filesystem;
 
@@ -329,6 +329,7 @@ void HexEdit::DrawHexEditContents() {
       // NB: The trailing space is not visible but ensure there's no gap that the mouse cannot click on.
       uint8_t b = ReadFn(mem_data, addr);
 
+      /*
       if (OptShowHexII)
       {
         if ((b >= 32 && b < 128))
@@ -341,11 +342,14 @@ void HexEdit::DrawHexEditContents() {
           ImGui::Text("%02X ", b);
       }
       else
-      {
-        if (b == 0 && OptGreyOutZeroes)
-          ImGui::TextDisabled("00 ");
-        else
-          ImGui::Text("%02X ", b);
+      */
+      if (b == 0 && OptGreyOutZeroes) {
+	      ImGui::TextDisabled("00 "); 
+      }
+      else {
+	      ImGui::Text("%01X", b >> 4);
+	      ImGui::SameLine(uint8_t_pos_x + s.GlyphWidth);
+	      ImGui::Text("%01X ", b & 0x0F);
       }
 
       // text selection

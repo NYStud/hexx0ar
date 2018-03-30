@@ -10,7 +10,7 @@
 #include <vector>
 #include <tuple>
 #include <functional>
-#include "nlohmann/json.hpp"
+#include "json.hpp"
 
 using json = nlohmann::json;
 
