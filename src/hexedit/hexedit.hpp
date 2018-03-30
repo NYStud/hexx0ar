@@ -93,4 +93,6 @@ public:
     void DrawHexEditContents();
     // renders the content of the hex view window
     void DrawHexViewContents();
+    // render the graph
+    void DrawHexGraphContents();
 };
