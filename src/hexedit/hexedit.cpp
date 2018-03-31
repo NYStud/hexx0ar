@@ -280,18 +280,27 @@ void HexEdit::DrawHexEditContents() {
   //const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
   //const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;
 
-  for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++) // display only visible lines
+  // render all visible lines
+  for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++)
   {
+    // calculate first address of line
     size_t addr = (size_t)(line_i * Rows);
+    // render first line number
     ImGui::Text("%0*" _PRISizeT ": ", (int)AddrDigitsCount, base_display_addr + addr);
 
-    // Draw Hexadecimal
+    // render all hex numbers
     for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
     {
       float uint8_t_pos_x = PosHexStart + HexCellWidth * n;
       if (OptMidRowsCount > 0)
         uint8_t_pos_x += (n / OptMidRowsCount) * SpacingBetweenMidRows;
       ImGui::SameLine(uint8_t_pos_x);
+
+      HexView hv;
+      strcpy(hv.name, "New View");
+      hv.start = std::min(m_click_start, m_click_current);
+      hv.end = std::max(m_click_start, m_click_current);
+      hv.color = ImColor(IM_COL32(255,0,0,128));
 
       // highlight all views
       auto highlight_fnc = [&](HexView& v) -> bool{
@@ -315,15 +324,11 @@ void HexEdit::DrawHexEditContents() {
           return false;
         }
       };
-
-      HexView hv;
-      strcpy(hv.name, "New View");
-      hv.start = std::min(m_click_start, m_click_current);
-      hv.end = std::max(m_click_start, m_click_current);
-      hv.color = ImColor(IM_COL32(255,0,0,128));
-
-      int m_current_view = -1;
+      // highlight current selection
       highlight_fnc(hv);
+      // this variable contains the currently highlighted view
+      int m_current_view = -1;
+      // highlight views
       for(int i=0; i < m_views.size(); i++) {
         if(highlight_fnc(m_views[i])) {
           m_current_view = i;
