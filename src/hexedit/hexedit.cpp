@@ -3,7 +3,6 @@
 #include <cstring>
 #include <application/log.hpp>
 #include "hexedit.hpp"
-//#include "mgl2/mgl.h"
 
 namespace fs = boost::filesystem;
 
@@ -97,33 +96,35 @@ void HexEdit::Save() {
   f << j;
 }
 
-void HexEdit::CalcSizes(Sizes &s) {
+void HexEdit::CalcSizes() {
   ImGuiStyle& style = ImGui::GetStyle();
-  s.AddrDigitsCount = OptAddrDigitsCount;
-  if (s.AddrDigitsCount == 0)
+  AddrDigitsCount = OptAddrDigitsCount;
+  if (AddrDigitsCount == 0)
     for (size_t n = base_display_addr + mem_size - 1; n > 0; n >>= 4)
-      s.AddrDigitsCount++;
-  s.LineHeight = ImGui::GetTextLineHeight();
-  s.GlyphWidth = ImGui::CalcTextSize("F").x + 1;                  // We assume the font is mono-space
-  s.HexCellWidth = (float)(int)(s.GlyphWidth * 2.5f);             // "FF " we include trailing space in the width to easily catch clicks everywhere
-  s.SpacingBetweenMidRows = (float)(int)(s.HexCellWidth * 0.25f); // Every OptMidRowsCount columns we add a bit of extra spacing
-  s.PosHexStart = (s.AddrDigitsCount + 2) * s.GlyphWidth;
-  s.PosHexEnd = s.PosHexStart + (s.HexCellWidth * Rows);
-  s.PosAsciiStart = s.PosAsciiEnd = s.PosHexEnd;
+      AddrDigitsCount++;
+  LineHeight = ImGui::GetTextLineHeight();
+  GlyphWidth = ImGui::CalcTextSize("F").x + 1;                  // We assume the font is mono-space
+  HexCellWidth = (float)(int)(GlyphWidth * 2.5f);             // "FF " we include trailing space in the width to easily catch clicks everywhere
+  SpacingBetweenMidRows = (float)(int)(HexCellWidth * 0.25f); // Every OptMidRowsCount columns we add a bit of extra spacing
+  PosHexStart = (AddrDigitsCount + 2) * GlyphWidth;
+  PosHexEnd = PosHexStart + (HexCellWidth * Rows);
+  PosAsciiStart = PosAsciiEnd = PosHexEnd;
   if (OptShowAscii)
   {
-    s.PosAsciiStart = s.PosHexEnd + s.GlyphWidth * 1;
+    PosAsciiStart = PosHexEnd + GlyphWidth * 1;
     if (OptMidRowsCount > 0)
-      s.PosAsciiStart += ((Rows + OptMidRowsCount - 1) / OptMidRowsCount) * s.SpacingBetweenMidRows;
-    s.PosAsciiEnd = s.PosAsciiStart + Rows * s.GlyphWidth;
+      PosAsciiStart += ((Rows + OptMidRowsCount - 1) / OptMidRowsCount) * SpacingBetweenMidRows;
+    PosAsciiEnd = PosAsciiStart + Rows * GlyphWidth;
   }
-  s.WindowWidth = s.PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + s.GlyphWidth;
+  WindowWidth = PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + GlyphWidth;
 }
 
 void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
-  Sizes s;
-  CalcSizes(s);
-  ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(s.WindowWidth, FLT_MAX));
+  m_width = w;
+  m_height = h;
+
+  CalcSizes();
+  ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(WindowWidth, FLT_MAX));
 
   Open = true;
   if (ImGui::Begin(title, &Open,ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoTitleBar|
@@ -152,6 +153,8 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
             free(mem_data);
           mem_data = NULL;
           mem_size = 0;
+
+          m_views.clear();
         }
         if (ImGui::MenuItem("Quit")) {
           exit(0);
@@ -185,8 +188,8 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
     DrawHexEditContents();
     if (ContentsWidthChanged)
     {
-      CalcSizes(s);
-      ImGui::SetWindowSize(ImVec2(s.WindowWidth, ImGui::GetWindowSize().y));
+      CalcSizes();
+      ImGui::SetWindowSize(ImVec2(WindowWidth, ImGui::GetWindowSize().y));
     }
   }
   ImGui::SetWindowPos(ImVec2(0,0));
@@ -223,8 +226,7 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
 #endif
 
 void HexEdit::DrawHexEditContents() {
-  Sizes s;
-  CalcSizes(s);
+  CalcSizes();
   ImGuiStyle& style = ImGui::GetStyle();
 
   const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing(); // 1 separator, 1 input text
@@ -235,7 +237,7 @@ void HexEdit::DrawHexEditContents() {
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
   const int line_total_count = (int)((mem_size + Rows - 1) / Rows);
-  ImGuiListClipper clipper(line_total_count, s.LineHeight);
+  ImGuiListClipper clipper(line_total_count, LineHeight);
 
   //const size_t visible_start_addr = clipper.DisplayStart * Rows;
   //const size_t visible_end_addr = clipper.DisplayEnd * Rows;
@@ -272,7 +274,7 @@ void HexEdit::DrawHexEditContents() {
   // Draw vertical separator
   ImVec2 window_pos = ImGui::GetWindowPos();
   if (OptShowAscii)
-    draw_list->AddLine(ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y), ImVec2(window_pos.x + s.PosAsciiStart - s.GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
+    draw_list->AddLine(ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y), ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
 
   const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
   const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;
@@ -280,29 +282,29 @@ void HexEdit::DrawHexEditContents() {
   for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++) // display only visible lines
   {
     size_t addr = (size_t)(line_i * Rows);
-    ImGui::Text("%0*" _PRISizeT ": ", s.AddrDigitsCount, base_display_addr + addr);
+    ImGui::Text("%0*" _PRISizeT ": ", (int)AddrDigitsCount, base_display_addr + addr);
 
     // Draw Hexadecimal
     for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
     {
-      float uint8_t_pos_x = s.PosHexStart + s.HexCellWidth * n;
+      float uint8_t_pos_x = PosHexStart + HexCellWidth * n;
       if (OptMidRowsCount > 0)
-        uint8_t_pos_x += (n / OptMidRowsCount) * s.SpacingBetweenMidRows;
+        uint8_t_pos_x += (n / OptMidRowsCount) * SpacingBetweenMidRows;
       ImGui::SameLine(uint8_t_pos_x);
 
       // hightlight all views
       auto highlight_fnc = [&](HexView& v) {
         auto min = v.start;
-        auto max = v.end;
+        auto max = v.end + 1;
         if((addr >= min && addr < max)) {
           ImVec2 pos = ImGui::GetCursorScreenPos();
-          float highlight_width = s.GlyphWidth * 2;
+          float highlight_width = GlyphWidth * 2;
           bool is_next_uint8_t_highlighted =  (addr + 1 < mem_size) && ((max != (size_t)-1 && addr + 1 < max));
           if (is_next_uint8_t_highlighted || (n + 1 == Rows))
           {
-            highlight_width = s.HexCellWidth;
+            highlight_width = HexCellWidth;
             if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
-              highlight_width += s.SpacingBetweenMidRows;
+              highlight_width += SpacingBetweenMidRows;
           }
 
           if (ImGui::IsItemHovered()) {
@@ -312,7 +314,7 @@ void HexEdit::DrawHexEditContents() {
             }
           }
 
-          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + s.LineHeight), ImColor(v.color));
+          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + LineHeight), ImColor(v.color));
         }
       };
 
@@ -330,26 +332,27 @@ void HexEdit::DrawHexEditContents() {
       uint8_t b = ReadFn(mem_data, addr);
 
       /*
-      if (OptShowHexII)
-      {
-        if ((b >= 32 && b < 128))
-          ImGui::Text(".%c ", b);
-        else if (b == 0xFF && OptGreyOutZeroes)
-          ImGui::TextDisabled("## ");
-        else if (b == 0x00)
-          ImGui::Text("   ");
-        else
-          ImGui::Text("%02X ", b);
-      }
-      else
-      */
+         if (OptShowHexII)
+         {
+         if ((b >= 32 && b < 128))
+         ImGui::Text(".%c ", b);
+         else if (b == 0xFF && OptGreyOutZeroes)
+         ImGui::TextDisabled("## ");
+         else if (b == 0x00)
+         ImGui::Text("   ");
+         else
+         ImGui::Text("%02X ", b);
+         }
+         else
+         */
+
       if (b == 0 && OptGreyOutZeroes) {
-	      ImGui::TextDisabled("00 "); 
+        ImGui::TextDisabled("00 ");
       }
       else {
-	      ImGui::Text("%01X", b >> 4);
-	      ImGui::SameLine(uint8_t_pos_x + s.GlyphWidth);
-	      ImGui::Text("%01X ", b & 0x0F);
+        ImGui::Text("%01X", b >> 4);
+        ImGui::SameLine(uint8_t_pos_x + GlyphWidth);
+        ImGui::Text("%01X ", b & 0x0F);
       }
 
       // text selection
@@ -358,38 +361,50 @@ void HexEdit::DrawHexEditContents() {
           if (!m_clicked) {
             m_clicked = true;
             m_click_start = addr;
-            m_click_current = addr+1;
+            m_click_current = addr;
           } else {
-            m_click_current = addr+1;
+            m_click_current = addr;
           }
         }
       } else {
         m_clicked = false;
       }
 
+      ImGui::SetKeyboardFocusHere();
+      ImGui::CaptureKeyboardFromApp(true);
+      if(ImGui::GetKeyPressedAmount(ImGui::GetKeyIndex(ImGuiKey_LeftArrow), 100, 1)) {
+        m_click_current--;
+        LOG("foo")
+      }
+      if(ImGui::GetKeyPressedAmount(ImGui::GetKeyIndex(ImGuiKey_RightArrow), 100, 1)) {
+        m_click_current++;
+      }
+
     }
 
-    if (OptShowAscii)
+    /*
+       if (OptShowAscii)
+       {
+    // Draw ASCII values
+    ImGui::SameLine(s.PosAsciiStart);
+    ImVec2 pos = ImGui::GetCursorScreenPos();
+    addr = line_i * Rows;
+    ImGui::PushID(line_i);
+    if (ImGui::InvisibleButton("ascii", ImVec2(s.PosAsciiEnd - s.PosAsciiStart, s.LineHeight)))
     {
-      // Draw ASCII values
-      ImGui::SameLine(s.PosAsciiStart);
-      ImVec2 pos = ImGui::GetCursorScreenPos();
-      addr = line_i * Rows;
-      ImGui::PushID(line_i);
-      if (ImGui::InvisibleButton("ascii", ImVec2(s.PosAsciiEnd - s.PosAsciiStart, s.LineHeight)))
-      {
-        //DataEditingAddr = addr + (size_t)((ImGui::GetIO().MousePos.x - pos.x) / s.GlyphWidth);
-        //DataEditingTakeFocus = true;
-      }
-      ImGui::PopID();
-      for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
-      {
-        unsigned char c = ReadFn(mem_data, addr);
-        char display_c = (c < 32 || c >= 128) ? '.' : c;
-        draw_list->AddText(pos, (display_c == '.') ? color_disabled : color_text, &display_c, &display_c + 1);
-        pos.x += s.GlyphWidth;
-      }
+    //DataEditingAddr = addr + (size_t)((ImGui::GetIO().MousePos.x - pos.x) / s.GlyphWidth);
+    //DataEditingTakeFocus = true;
     }
+    ImGui::PopID();
+    for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
+    {
+    unsigned char c = ReadFn(mem_data, addr);
+    char display_c = (c < 32 || c >= 128) ? '.' : c;
+    draw_list->AddText(pos, (display_c == '.') ? color_disabled : color_text, &display_c, &display_c + 1);
+    pos.x += s.GlyphWidth;
+    }
+    }
+    */
 
   }
   clipper.End();
@@ -407,17 +422,17 @@ void HexEdit::DrawHexEditContents() {
     if (ImGui::DragInt("##rows", &Rows, 0.2f, 4, 32, "%.0f rows")) ContentsWidthChanged = true;
     ImGui::PopItemWidth();
 
-    ImGui::Checkbox("Show HexII", &OptShowHexII);
-    if (ImGui::Checkbox("Show Ascii", &OptShowAscii)) ContentsWidthChanged = true;
+    //ImGui::Checkbox("Show HexII", &OptShowHexII);
+    //if (ImGui::Checkbox("Show Ascii", &OptShowAscii)) ContentsWidthChanged = true;
     ImGui::Checkbox("Grey out zeroes", &OptGreyOutZeroes);
 
     ImGui::EndPopup();
   }
 
   ImGui::SameLine();
-  ImGui::Text("Range %0*" _PRISizeT "..%0*" _PRISizeT, s.AddrDigitsCount, base_display_addr, s.AddrDigitsCount, base_display_addr + mem_size - 1);
+  ImGui::Text("Range %0*" _PRISizeT "..%0*" _PRISizeT, AddrDigitsCount, base_display_addr, AddrDigitsCount, base_display_addr + mem_size - 1);
   ImGui::SameLine();
-  ImGui::PushItemWidth((s.AddrDigitsCount + 1) * s.GlyphWidth + style.FramePadding.x * 2.0f);
+  ImGui::PushItemWidth((AddrDigitsCount + 1) * GlyphWidth + style.FramePadding.x * 2.0f);
   if (ImGui::InputText("##addr", AddrInputBuf, 32, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue))
   {
     size_t goto_addr;
@@ -441,7 +456,7 @@ void HexEdit::DrawHexEditContents() {
   }
 
   // Notify the main window of our ideal child content size (FIXME: we are missing an API to get the contents size from the child)
-  ImGui::SetCursorPosX(s.WindowWidth);
+  ImGui::SetCursorPosX(WindowWidth);
 }
 
 void HexEdit::DrawHexViewContents() {
@@ -449,15 +464,15 @@ void HexEdit::DrawHexViewContents() {
     if(m_selected_view >= m_views.size())
       m_selected_view = 0;
 
-    if (ImGui::BeginCombo("##hexview", m_views[m_selected_view].name)) // The second parameter is the label previewed before opening the combo.
+    if (ImGui::BeginCombo("##hexview", m_views[m_selected_view].name))
     {
-      for (auto n = 0; n < m_views.size(); n++)
+      for (size_t n = 0; n < m_views.size(); n++)
       {
         if (ImGui::Selectable(m_views[n].name, n==m_selected_view))
           m_selected_view = n;
 
         if (n==m_selected_view)
-          ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
+          ImGui::SetItemDefaultFocus();
       }
       ImGui::EndCombo();
     }
@@ -466,46 +481,17 @@ void HexEdit::DrawHexViewContents() {
 
     ImGui::InputText("name", m_views[m_selected_view].name, sizeof(m_views[m_selected_view].name));
 
+    ImGui::InputInt("start", (int*)&m_views[m_selected_view].start, 1, 16, ImGuiInputTextFlags_CharsHexadecimal);
+    ImGui::InputInt("end", (int*)&m_views[m_selected_view].end, 1, 16, ImGuiInputTextFlags_CharsHexadecimal);
+    ImGui::Text("size: %d", m_views[m_selected_view].end - (m_views[m_selected_view].start - 1));
+
+
     //ImGui::InputText("hexadecimal", 0,0, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
   }
 }
 
 void HexEdit::DrawHexGraphContents() {
- /*
-  mglGraph gr(4096, 4096);
-  gr.Alpha(true);         // draws something using MathGL
-  gr.Light(true);
-
-  gr.SubPlot(2,2,0); gr.Title("Axis origin, Grid"); gr.SetOrigin(0,0);
-  gr.Axis(); gr.Grid(); gr.FPlot("x^3");
-
-  gr.SubPlot(2,2,1); gr.Title("2 axis");
-  gr.SetRanges(-1,1,-1,1); gr.SetOrigin(-1,-1,-1);  // first axis
-  gr.Axis(); gr.Label('y',"axis 1",0);  gr.FPlot("sin(pi*x)");
-  gr.SetRanges(0,1,0,1);   gr.SetOrigin(1,1,1);   // second axis
-  gr.Axis(); gr.Label('y',"axis 2",0);  gr.FPlot("cos(pi*x)");
-
-  gr.SubPlot(2,2,3); gr.Title("More axis");
-  gr.SetOrigin(NAN,NAN); gr.SetRange('x',-1,1);
-  gr.Axis(); gr.Label('x',"x",0); gr.Label('y',"y_1",0);
-  gr.FPlot("x^2","k");
-  gr.SetRanges(-1,1,-1,1); gr.SetOrigin(-1.3,-1); // second axis
-  gr.Axis("y","r");  gr.Label('y',"#r{y_2}",0.2);
-  gr.FPlot("x^3","r");
-
-  gr.SubPlot(2,2,2); gr.Title("4 segments, inverted axis");
-  gr.SetOrigin(0,0);
-  gr.InPlot(0.5,1,0.5,1);  gr.SetRanges(0,10,0,2);  gr.Axis();
-  gr.FPlot("sqrt(x/2)");   gr.Label('x',"W",1); gr.Label('y',"U",1);
-  gr.InPlot(0,0.5,0.5,1);  gr.SetRanges(1,0,0,2); gr.Axis("x");
-  gr.FPlot("sqrt(x)+x^3"); gr.Label('x',"\\tau",-1);
-  gr.InPlot(0.5,1,0,0.5);  gr.SetRanges(0,10,4,0);  gr.Axis("y");
-  gr.FPlot("x/4"); gr.Label('y',"L",-1);
-  gr.InPlot(0,0.5,0,0.5);  gr.SetRanges(1,0,4,0); gr.FPlot("4*x^2");
-*/
- // gr.WritePNG("test.png");  // Don't forget to save the result!
-
-  //fl_draw_image(gr.GetRGB(), x(), y(), gr.GetWidth(), gr.GetHeight(), 3);
+  ImGui::Image(0, ImVec2(m_width/3, m_height/2));
 }
 
 #undef _PRISizeT

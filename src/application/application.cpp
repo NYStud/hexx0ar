@@ -31,7 +31,7 @@ void Application::start(int argc, const char** argv) {
       ("file", po::value<std::string>(&file_path)->default_value("hexx0ar"),
        "path to the file the hex editor loads")
       ("project", po::value<std::string>(&project_path)->default_value("project.json"),
-              "path to the configuration file storing the hexviews");
+       "path to the configuration file storing the hexviews");
 
     store(parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
