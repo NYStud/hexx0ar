@@ -31,7 +31,6 @@ void from_json(const json& j, HexView& v) {
   v.color.w = j.at("color_a").get<float>();
 }
 
-
 HexEdit::HexEdit() {
   // Settings
   Open = true;
@@ -276,8 +275,8 @@ void HexEdit::DrawHexEditContents() {
   if (OptShowAscii)
     draw_list->AddLine(ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y), ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
 
-  const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
-  const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;
+  //const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
+  //const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;
 
   for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++) // display only visible lines
   {
@@ -292,8 +291,8 @@ void HexEdit::DrawHexEditContents() {
         uint8_t_pos_x += (n / OptMidRowsCount) * SpacingBetweenMidRows;
       ImGui::SameLine(uint8_t_pos_x);
 
-      // hightlight all views
-      auto highlight_fnc = [&](HexView& v) {
+      // highlight all views
+      auto highlight_fnc = [&](HexView& v) -> bool{
         auto min = v.start;
         auto max = v.end + 1;
         if((addr >= min && addr < max)) {
@@ -307,14 +306,11 @@ void HexEdit::DrawHexEditContents() {
               highlight_width += SpacingBetweenMidRows;
           }
 
-          if (ImGui::IsItemHovered()) {
-            ImGui::SetTooltip("%s", v.name);
-            if(ImGui::IsMouseClicked(0)) {
-              m_selected_view = v.id;
-            }
-          }
-
           draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + LineHeight), ImColor(v.color));
+
+          return true;
+        } else {
+          return false;
         }
       };
 
@@ -324,60 +320,62 @@ void HexEdit::DrawHexEditContents() {
       hv.end = std::max(m_click_start, m_click_current);
       hv.color = ImColor(IM_COL32(255,0,0,128));
 
+      int m_current_view = -1;
       highlight_fnc(hv);
-      for(auto v : m_views)
-        highlight_fnc(v);
+      for(int i=0; i < m_views.size(); i++) {
+        if(highlight_fnc(m_views[i])) {
+          m_current_view = i;
+        }
+      }
 
       // NB: The trailing space is not visible but ensure there's no gap that the mouse cannot click on.
       uint8_t b = ReadFn(mem_data, addr);
 
-      /*
-         if (OptShowHexII)
-         {
-         if ((b >= 32 && b < 128))
-         ImGui::Text(".%c ", b);
-         else if (b == 0xFF && OptGreyOutZeroes)
-         ImGui::TextDisabled("## ");
-         else if (b == 0x00)
-         ImGui::Text("   ");
-         else
-         ImGui::Text("%02X ", b);
-         }
-         else
-         */
+      // text selection
+      auto handleTooltipAndClick = [&]() {
+        if (ImGui::IsItemHovered()) {
+          if(m_current_view >= 0 && m_current_view < m_views.size()) {
+            m_selected_view = m_views[m_current_view].id;
+            ImGui::SetTooltip("%s", m_views[m_current_view].name);
+          }
+        }
+        if (ImGui::IsMouseDown(0)) {
+          if (ImGui::IsItemHovered()) {
+            if (!m_clicked) {
+              m_clicked = true;
+              m_click_start = addr;
+              m_click_current = addr;
+            } else {
+              m_click_current = addr;
+            }
+          }
+        } else {
+          m_clicked = false;
+        }
+      };
 
       if (b == 0 && OptGreyOutZeroes) {
-        ImGui::TextDisabled("00 ");
+        ImGui::TextDisabled("0");
+        handleTooltipAndClick();
+        ImGui::SameLine(uint8_t_pos_x + GlyphWidth);
+        ImGui::TextDisabled("0 ");
+        handleTooltipAndClick();
       }
       else {
         ImGui::Text("%01X", b >> 4);
-        ImGui::SameLine(uint8_t_pos_x + GlyphWidth);
-        ImGui::Text("%01X ", b & 0x0F);
-      }
+        handleTooltipAndClick();
 
-      // text selection
-      if(ImGui::IsMouseDown(0)) {
-        if (ImGui::IsItemHovered()) {
-          if (!m_clicked) {
-            m_clicked = true;
-            m_click_start = addr;
-            m_click_current = addr;
-          } else {
-            m_click_current = addr;
-          }
-        }
-      } else {
-        m_clicked = false;
+        ImGui::SameLine(uint8_t_pos_x + GlyphWidth);
+
+        ImGui::Text("%01X ", b & 0x0F);
+        handleTooltipAndClick();
       }
 
       ImGui::SetKeyboardFocusHere();
       ImGui::CaptureKeyboardFromApp(true);
       if(ImGui::GetKeyPressedAmount(ImGui::GetKeyIndex(ImGuiKey_LeftArrow), 100, 1)) {
-        m_click_current--;
-        LOG("foo")
       }
       if(ImGui::GetKeyPressedAmount(ImGui::GetKeyIndex(ImGuiKey_RightArrow), 100, 1)) {
-        m_click_current++;
       }
 
     }
@@ -460,33 +458,35 @@ void HexEdit::DrawHexEditContents() {
 }
 
 void HexEdit::DrawHexViewContents() {
+  ImGui::BeginChild("viewlist", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, m_height * 0.4f), false);
+  for (size_t n = 0; n < m_views.size(); n++)
+  {
+    char buf[sizeof(m_views[n].name) + 32];
+    snprintf(buf, sizeof(buf), "%0*" _PRISizeT " : %s", (int)AddrDigitsCount, m_views[n].start, m_views[n].name);
+    if (ImGui::Selectable(buf, n==m_selected_view))
+      m_selected_view = n;
+
+    if (n==m_selected_view)
+      ImGui::SetItemDefaultFocus();
+  }
+  ImGui::EndChild();
+
   if(m_views.size()) {
     if(m_selected_view >= m_views.size())
       m_selected_view = 0;
 
-    if (ImGui::BeginCombo("##hexview", m_views[m_selected_view].name))
-    {
-      for (size_t n = 0; n < m_views.size(); n++)
-      {
-        if (ImGui::Selectable(m_views[n].name, n==m_selected_view))
-          m_selected_view = n;
+    ImGui::SameLine();
 
-        if (n==m_selected_view)
-          ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
-    }
-
-    ImGui::ColorEdit4("view color", &m_views[m_selected_view].color.x);
-
+    ImGui::BeginChild("vieweditor", ImVec2(0,m_height * 0.4f), true);
     ImGui::InputText("name", m_views[m_selected_view].name, sizeof(m_views[m_selected_view].name));
-
+    ImGui::ColorEdit4("color", &m_views[m_selected_view].color.x);
     ImGui::InputInt("start", (int*)&m_views[m_selected_view].start, 1, 16, ImGuiInputTextFlags_CharsHexadecimal);
     ImGui::InputInt("end", (int*)&m_views[m_selected_view].end, 1, 16, ImGuiInputTextFlags_CharsHexadecimal);
     ImGui::Text("size: %d", m_views[m_selected_view].end - (m_views[m_selected_view].start - 1));
-
-
+    //todo: value
     //ImGui::InputText("hexadecimal", 0,0, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
+
+    ImGui::EndChild();
   }
 }
 
