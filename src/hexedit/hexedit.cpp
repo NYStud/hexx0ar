@@ -197,6 +197,7 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
     }
   }
   ImGui::SetWindowPos(ImVec2(0,0));
+  ImGui::SetWindowSize(ImVec2(HexEdit_WindowWidth, h));
 
   ImGui::End();
 
