@@ -19,7 +19,6 @@ find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(SDL2Image REQUIRED)
 find_package(Lua REQUIRED)
-find_package(MathGL REQUIRED)
 
 # options
 

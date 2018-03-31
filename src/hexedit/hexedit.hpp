@@ -38,7 +38,9 @@ private:
   float   PosHexEnd;
   float   PosAsciiStart;
   float   PosAsciiEnd;
-  float   WindowWidth;
+  float   HexEdit_WindowWidth;
+  float   HexView_WindowWidth;
+  float   HexGraph_WindowWidth;
 
   // used for view selection
   bool m_clicked = false;
@@ -92,12 +94,14 @@ public:
   void CalcSizes();
 
   // creates everything ( hexedit, view & graph )
-  void BeginWindow(const char *title, size_t w, size_t h);
+  void BeginWindow(const char *title, size_t w, size_t h, size_t m_delta);
 
   // renders the content of the hex editor window
-  void DrawHexEditContents();
+  void DrawHexEdit();
   // renders the content of the hex view window
-  void DrawHexViewContents();
+  void DrawHexView();
   // render the graph
-  void DrawHexGraphContents();
+  void DrawHexGraph();
+  // render the table
+  void DrawHexTable();
 };

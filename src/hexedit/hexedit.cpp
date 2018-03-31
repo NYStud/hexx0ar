@@ -115,15 +115,20 @@ void HexEdit::CalcSizes() {
       PosAsciiStart += ((Rows + OptMidRowsCount - 1) / OptMidRowsCount) * SpacingBetweenMidRows;
     PosAsciiEnd = PosAsciiStart + Rows * GlyphWidth;
   }
-  WindowWidth = PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + GlyphWidth;
+  HexEdit_WindowWidth = PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + GlyphWidth;
+  HexView_WindowWidth = (m_width - HexEdit_WindowWidth)/2;
+  HexGraph_WindowWidth = (m_width - HexEdit_WindowWidth)/2;
 }
 
-void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
+void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta) {
   m_width = w;
   m_height = h;
 
+  if(!w || !h)
+    return;
+
   CalcSizes();
-  ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(WindowWidth, FLT_MAX));
+  ImGui::SetNextWindowSizeConstraints(ImVec2(0.0f, 0.0f), ImVec2(HexEdit_WindowWidth, FLT_MAX));
 
   Open = true;
   if (ImGui::Begin(title, &Open,ImGuiWindowFlags_MenuBar|ImGuiWindowFlags_NoMove|ImGuiWindowFlags_NoTitleBar|
@@ -184,37 +189,56 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
 
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_RootAndChildWindows) && ImGui::IsMouseClicked(1))
       ImGui::OpenPopup("context");
-    DrawHexEditContents();
+    DrawHexEdit();
     if (ContentsWidthChanged)
     {
       CalcSizes();
-      ImGui::SetWindowSize(ImVec2(WindowWidth, ImGui::GetWindowSize().y));
+      ImGui::SetWindowSize(ImVec2(HexEdit_WindowWidth, ImGui::GetWindowSize().y));
     }
   }
   ImGui::SetWindowPos(ImVec2(0,0));
-  if(w && h) {
-    ImGui::SetWindowSize(ImVec2(w/3, h));
-  }
 
   ImGui::End();
 
   ImGui::Begin("View", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
                              ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
 
-  ImGui::SetWindowPos(ImVec2(w/3,0));
-  if(w && h) {
-    ImGui::SetWindowSize(ImVec2(w/3, h/2));
-  }
-  DrawHexViewContents();
+  ImGui::SetWindowPos(ImVec2(HexEdit_WindowWidth,0));
+  ImGui::SetWindowSize(ImVec2(HexView_WindowWidth, h/2));
+
+  DrawHexView();
   ImGui::End();
 
   ImGui::Begin("Graph", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
                               ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
-  ImGui::SetWindowPos(ImVec2(2*(w/3),0));
-  if(w && h) {
-    ImGui::SetWindowSize(ImVec2(w/3, h/2));
+  ImGui::SetWindowPos(ImVec2((HexEdit_WindowWidth + HexView_WindowWidth),0));
+  ImGui::SetWindowSize(ImVec2(HexGraph_WindowWidth, h/2));
+
+  DrawHexGraph();
+  ImGui::End();
+
+  ImGui::Begin("Table", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
+                              ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
+  ImGui::SetWindowPos(ImVec2((HexEdit_WindowWidth),(h/2)));
+  ImGui::SetWindowSize(ImVec2(HexView_WindowWidth, h/2));
+
+  DrawHexTable();
+  ImGui::End();
+
+  ImGui::Begin("debug info: ", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
+                                     ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
+  ImGui::SetWindowPos(ImVec2((HexEdit_WindowWidth + HexView_WindowWidth), h/2));
+  ImGui::SetWindowSize(ImVec2(HexGraph_WindowWidth, h/2));
+
+  auto str = std::to_string(m_delta) + " ms";
+  ImGui::Text("time per frame: %s", str.c_str());
+
+  static bool b = false;
+  ImGui::Checkbox("demo window", &b);
+  if(b) {
+    ImGui::ShowDemoWindow();
   }
-  DrawHexGraphContents();
+
   ImGui::End();
 }
 
@@ -224,7 +248,7 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h) {
 #define _PRISizeT   "zX"
 #endif
 
-void HexEdit::DrawHexEditContents() {
+void HexEdit::DrawHexEdit() {
   CalcSizes();
   ImGuiStyle& style = ImGui::GetStyle();
 
@@ -277,8 +301,8 @@ void HexEdit::DrawHexEditContents() {
   if (OptShowAscii)
     draw_list->AddLine(ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y), ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
 
-  //const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
-  //const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;
+  const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
+  const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;
 
   // render all visible lines
   for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++)
@@ -302,8 +326,9 @@ void HexEdit::DrawHexEditContents() {
       hv.end = std::max(m_click_start, m_click_current);
       hv.color = ImColor(IM_COL32(255,0,0,128));
 
-      // highlight all views
-      auto highlight_fnc = [&](HexView& v) -> bool{
+      // highlights a byte, if there's a view for it
+      // returns whether the byte was highlighted or not
+      auto highlight_fnc = [&](HexView& v) -> bool {
         auto min = v.start;
         auto max = v.end + 1;
         if((addr >= min && addr < max)) {
@@ -324,6 +349,7 @@ void HexEdit::DrawHexEditContents() {
           return false;
         }
       };
+
       // highlight current selection
       highlight_fnc(hv);
       // this variable contains the currently highlighted view
@@ -335,7 +361,7 @@ void HexEdit::DrawHexEditContents() {
         }
       }
 
-      // NB: The trailing space is not visible but ensure there's no gap that the mouse cannot click on.
+      // read current byte
       uint8_t b = ReadFn(mem_data, addr);
 
       auto handleTooltipAndClick = [&]() {
@@ -392,29 +418,27 @@ void HexEdit::DrawHexEditContents() {
 
     }
 
-    /*
-       if (OptShowAscii)
-       {
-    // Draw ASCII values
-    ImGui::SameLine(s.PosAsciiStart);
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    addr = line_i * Rows;
-    ImGui::PushID(line_i);
-    if (ImGui::InvisibleButton("ascii", ImVec2(s.PosAsciiEnd - s.PosAsciiStart, s.LineHeight)))
+    if (OptShowAscii)
     {
-    //DataEditingAddr = addr + (size_t)((ImGui::GetIO().MousePos.x - pos.x) / s.GlyphWidth);
-    //DataEditingTakeFocus = true;
+      // Draw ASCII values
+      ImGui::SameLine(PosAsciiStart);
+      ImVec2 pos = ImGui::GetCursorScreenPos();
+      addr = line_i * Rows;
+      ImGui::PushID(line_i);
+      if (ImGui::InvisibleButton("ascii", ImVec2(PosAsciiEnd - PosAsciiStart, LineHeight)))
+      {
+        //DataEditingAddr = addr + (size_t)((ImGui::GetIO().MousePos.x - pos.x) / s.GlyphWidth);
+        //DataEditingTakeFocus = true;
+      }
+      ImGui::PopID();
+      for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
+      {
+        unsigned char c = ReadFn(mem_data, addr);
+        char display_c = (c < 32 || c >= 128) ? '.' : c;
+        draw_list->AddText(pos, (display_c == '.') ? color_disabled : color_text, &display_c, &display_c + 1);
+        pos.x += GlyphWidth;
+      }
     }
-    ImGui::PopID();
-    for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
-    {
-    unsigned char c = ReadFn(mem_data, addr);
-    char display_c = (c < 32 || c >= 128) ? '.' : c;
-    draw_list->AddText(pos, (display_c == '.') ? color_disabled : color_text, &display_c, &display_c + 1);
-    pos.x += s.GlyphWidth;
-    }
-    }
-    */
 
   }
   clipper.End();
@@ -433,7 +457,7 @@ void HexEdit::DrawHexEditContents() {
     ImGui::PopItemWidth();
 
     //ImGui::Checkbox("Show HexII", &OptShowHexII);
-    //if (ImGui::Checkbox("Show Ascii", &OptShowAscii)) ContentsWidthChanged = true;
+    if (ImGui::Checkbox("Show Ascii", &OptShowAscii)) ContentsWidthChanged = true;
     ImGui::Checkbox("Grey out zeroes", &OptGreyOutZeroes);
 
     ImGui::EndPopup();
@@ -449,7 +473,6 @@ void HexEdit::DrawHexEditContents() {
     if (sscanf(AddrInputBuf, "%" _PRISizeT, &goto_addr) == 1)
     {
       GotoAddr = goto_addr - base_display_addr;
-      //HighlightMin = HighlightMax = (size_t)-1;
     }
   }
   ImGui::PopItemWidth();
@@ -466,10 +489,10 @@ void HexEdit::DrawHexEditContents() {
   }
 
   // Notify the main window of our ideal child content size (FIXME: we are missing an API to get the contents size from the child)
-  ImGui::SetCursorPosX(WindowWidth);
+  ImGui::SetCursorPosX(HexEdit_WindowWidth);
 }
 
-void HexEdit::DrawHexViewContents() {
+void HexEdit::DrawHexView() {
   ImGui::BeginChild("viewlist", ImVec2(ImGui::GetWindowContentRegionWidth() * 0.5f, m_height * 0.4f), false);
   for (size_t n = 0; n < m_views.size(); n++)
   {
@@ -489,11 +512,13 @@ void HexEdit::DrawHexViewContents() {
 
     ImGui::SameLine();
 
-    ImGui::BeginChild("vieweditor", ImVec2(0,m_height * 0.4f), true);
+    ImGui::BeginChild("vieweditor", ImVec2(0,m_height * 0.4f), false);
     ImGui::InputText("name", m_views[m_selected_view].name, sizeof(m_views[m_selected_view].name));
     ImGui::ColorEdit4("color", &m_views[m_selected_view].color.x);
-    ImGui::InputInt("start", (int*)&m_views[m_selected_view].start, 1, 16, ImGuiInputTextFlags_CharsHexadecimal);
-    ImGui::InputInt("end", (int*)&m_views[m_selected_view].end, 1, 16, ImGuiInputTextFlags_CharsHexadecimal);
+    ImGui::InputInt("start", (int*)&m_views[m_selected_view].start, 1, 16,
+                    ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::InputInt("end", (int*)&m_views[m_selected_view].end, 1, 16,
+                    ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::Text("size: %d", m_views[m_selected_view].end - (m_views[m_selected_view].start - 1));
     //todo: value
     //ImGui::InputText("hexadecimal", 0,0, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
@@ -502,8 +527,12 @@ void HexEdit::DrawHexViewContents() {
   }
 }
 
-void HexEdit::DrawHexGraphContents() {
+void HexEdit::DrawHexGraph() {
   ImGui::Image(0, ImVec2(m_width/3, m_height/2));
+}
+
+void HexEdit::DrawHexTable() {
+
 }
 
 #undef _PRISizeT

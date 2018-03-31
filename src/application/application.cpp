@@ -92,25 +92,7 @@ void Application::start(int argc, const char** argv) {
 
     m_uirenderer.update(m_delta);
 
-    ImGui::Begin("debug info: ", NULL, ImGuiWindowFlags_NoMove|ImGuiWindowFlags_ResizeFromAnySide|
-                                       ImGuiWindowFlags_NoTitleBar|ImGuiWindowFlags_NoScrollbar);
-    ImGui::SetWindowPos(ImVec2(2*(m_wnd.getWidth()/3),m_wnd.getHeight()/2));
-    if(m_wnd.getWidth() && m_wnd.getHeight()) {
-      ImGui::SetWindowSize(ImVec2(m_wnd.getWidth()/3, m_wnd.getHeight()/2));
-    }
-
-    auto str = std::to_string(m_delta) + " ms";
-    ImGui::Text("time per frame: %s", str.c_str());
-
-    static bool b = false;
-    ImGui::Checkbox("demo window", &b);
-    if(b) {
-      ImGui::ShowDemoWindow();
-    }
-
-    ImGui::End();
-
-    hexedit.BeginWindow("Hexedit", m_wnd.getWidth(), m_wnd.getHeight());
+    hexedit.BeginWindow("Hexedit", m_wnd.getWidth(), m_wnd.getHeight(), m_delta);
 
     //always render the ui last
     m_uirenderer.render();
