@@ -266,6 +266,8 @@ void HexEdit::DrawHexEditContents() {
       m_click_current = 0;
 
       m_selected_view = m_views.size()-1;
+
+      ImGui::CloseCurrentPopup();
     }
     ImGui::EndPopup();
   }
@@ -331,16 +333,21 @@ void HexEdit::DrawHexEditContents() {
       // NB: The trailing space is not visible but ensure there's no gap that the mouse cannot click on.
       uint8_t b = ReadFn(mem_data, addr);
 
-      // text selection
       auto handleTooltipAndClick = [&]() {
+        // tooltip
         if (ImGui::IsItemHovered()) {
           if(m_current_view >= 0 && m_current_view < m_views.size()) {
-            m_selected_view = m_views[m_current_view].id;
             ImGui::SetTooltip("%s", m_views[m_current_view].name);
           }
         }
+
+        // text selection
         if (ImGui::IsMouseDown(0)) {
           if (ImGui::IsItemHovered()) {
+            if(m_current_view >= 0 && m_current_view < m_views.size()) {
+              m_selected_view = m_views[m_current_view].id;
+            }
+
             if (!m_clicked) {
               m_clicked = true;
               m_click_start = addr;
