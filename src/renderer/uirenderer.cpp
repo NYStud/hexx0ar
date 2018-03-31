@@ -168,8 +168,10 @@ void UIRenderer::render() {
   ImGuiIO& io = ImGui::GetIO();
   int fb_width = (int)(io.DisplaySize.x * io.DisplayFramebufferScale.x);
   int fb_height = (int)(io.DisplaySize.y * io.DisplayFramebufferScale.y);
+
   if (fb_width == 0 || fb_height == 0)
     return;
+
   draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
   // Backup GL state
@@ -233,7 +235,10 @@ void UIRenderer::render() {
       else
       {
         glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
-        glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
+        glScissor((int)(pcmd->ClipRect.x),
+                  (int)(fb_height - pcmd->ClipRect.w),
+                  (int)(pcmd->ClipRect.z - pcmd->ClipRect.x),
+                  (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
         glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
       }
       idx_buffer_offset += pcmd->ElemCount;
