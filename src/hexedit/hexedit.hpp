@@ -21,6 +21,10 @@ struct HexView {
   size_t start, end;
   ImVec4 color;
 };
+inline bool operator< (const HexView& lhs, const HexView& rhs){ return lhs.start < rhs.start; }
+inline bool operator> (const HexView& lhs, const HexView& rhs){ return rhs < lhs; }
+inline bool operator<=(const HexView& lhs, const HexView& rhs){ return !(lhs > rhs); }
+inline bool operator>=(const HexView& lhs, const HexView& rhs){ return !(lhs < rhs); }
 
 struct HexEdit {
 private:

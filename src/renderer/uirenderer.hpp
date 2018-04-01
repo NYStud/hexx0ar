@@ -20,6 +20,7 @@ private:
 
   glm::mat4 m_projection_matrix;
 
+  unsigned int m_dw, m_dh;
 public:
   UIRenderer() {};
   ~UIRenderer() {};

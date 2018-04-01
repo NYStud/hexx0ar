@@ -106,6 +106,8 @@ void UIRenderer::init() {
     ImGuiIO &io = ImGui::GetIO();
     io.DisplaySize = ImVec2((float) w, (float) h);
     io.DisplayFramebufferScale = ImVec2(w > 0 ? ((float) dw / w) : 0, h > 0 ? ((float) dh / h) : 0);
+    m_dw = dw;
+    m_dh = dh;
     m_projection_matrix = glm::ortho(0.0f, (float)w, (float)h, 0.0f);
   });
   onClick.connect([this](bool up, int x, int y, uint8_t button, uint8_t state, uint8_t clicks) {
@@ -206,7 +208,7 @@ void UIRenderer::render() {
   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
   // Setup viewport, orthographic projection matrix
-  glViewport(0, 0, (GLsizei)fb_width, (GLsizei)fb_height);
+  glViewport(0, 0, (GLsizei)m_dw, (GLsizei)m_dh);
 
   m_shader.bind();
   glUniform1i(m_shader.location("tex0"), 0);

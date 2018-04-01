@@ -2,6 +2,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <cstring>
 #include <application/log.hpp>
+#include <SDL2/SDL_video.h>
 #include "hexedit.hpp"
 
 namespace fs = boost::filesystem;
@@ -233,6 +234,8 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
 
   auto str = std::to_string(m_delta) + " ms";
   ImGui::Text("time per frame: %s", str.c_str());
+
+  ImGui::InputFloat("text scale", &ImGui::GetFont()->Scale, 0.1f, 0.1f, 3, ImGuiInputTextFlags_EnterReturnsTrue);
 
   static bool b = false;
   ImGui::Checkbox("demo window", &b);
