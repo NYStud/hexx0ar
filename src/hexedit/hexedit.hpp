@@ -87,13 +87,6 @@ public:
 
   HexEdit();
 
-  void GotoAddrAndHighlight(size_t addr_min, size_t addr_max)
-  {
-    GotoAddr = addr_min;
-    //HighlightMin = addr_min;
-    //HighlightMax = addr_max;
-  }
-
   void LoadFile(const char* path);
   void LoadProject();
   void Save();

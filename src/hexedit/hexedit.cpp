@@ -535,7 +535,7 @@ void HexEdit::DrawHexView() {
                     ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::InputInt("end", (int*)&m_views[m_selected_view].end, 1, 16,
                     ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::Text("size: %d", m_views[m_selected_view].end - (m_views[m_selected_view].start - 1));
+    ImGui::Text("size: %lu", m_views[m_selected_view].end - (m_views[m_selected_view].start - 1));
     //todo: value
     //ImGui::InputText("hexadecimal", 0,0, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);
 
@@ -558,23 +558,23 @@ void HexEdit::DrawHexTable() {
 
     char buf[32];
 
-    for (int x=0; x < data_X.size(); x++)
+    for (size_t x=0; x < data_X.size(); x++)
     {
-      snprintf(buf, sizeof(buf), "##x%d", x);
+      snprintf(buf, sizeof(buf), "##x%lu", x);
       ImGui::InputFloat(buf, &data_X[x], 0.0f, 0.0f, 2, ImGuiInputTextFlags_EnterReturnsTrue);
       ImGui::NextColumn();
     }
 
     ImGui::Separator();
 
-    for(int y=0; y < data_Y.size(); y++) {
-      snprintf(buf, sizeof(buf), "##y%d", y);
+    for(size_t y=0; y < data_Y.size(); y++) {
+      snprintf(buf, sizeof(buf), "##y%lu", y);
       ImGui::InputFloat(buf, &data_Y[y], 0.0f, 0.0f, 2, ImGuiInputTextFlags_EnterReturnsTrue);
       ImGui::NextColumn();
 
-      for (int x = 0; x < data_X.size(); x++)
+      for (size_t x = 0; x < data_X.size(); x++)
       {
-        snprintf(buf, sizeof(buf), "##d%d", x+(y*data_X.size()));
+        snprintf(buf, sizeof(buf), "##d%lu", x+(y*data_X.size()));
         ImGui::InputFloat(buf, &data[x + y * data_X.size()], 0.0f, 0.0f, 2, ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::NextColumn();
       }
