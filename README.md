@@ -1,7 +1,6 @@
-hexx0ar
--------
+# hexx0ar
 
-hexx0ar is a simple hexeditor built using ImGui.
+hexx0ar is a simple, but powerful hexeditor currently in development.
 
 dependecies
 -----------
