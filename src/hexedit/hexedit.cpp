@@ -36,7 +36,6 @@ HexEdit::HexEdit() {
   ReadOnly = false;
   Rows = 16;
   OptShowAscii = true;
-  OptShowHexII = false;
   OptGreyOutZeroes = true;
   OptMidRowsCount = 8;
   OptAddrDigitsCount = 0;
@@ -48,6 +47,20 @@ HexEdit::HexEdit() {
   memset(DataInputBuf, 0, sizeof(DataInputBuf));
   memset(AddrInputBuf, 0, sizeof(AddrInputBuf));
   GotoAddr = (size_t)-1;
+
+// test data
+  for(int x = 0; x < 4; x++) {
+    data_X.push_back(x);
+  }
+  for(int y = 0; y < 6; y++) {
+    data_Y.push_back(y);
+  }
+
+  for(auto x : data_X) {
+    for(auto y : data_Y) {
+      data.push_back(x+y);
+    }
+  }
 }
 
 void HexEdit::LoadFile(const char* path) {
@@ -359,7 +372,7 @@ void HexEdit::DrawHexEdit() {
       // this variable contains the currently highlighted view
       int m_current_view = -1;
       // highlight views
-      for(int i=0; i < m_views.size(); i++) {
+      for(size_t i=0; i < m_views.size(); i++) {
         if(highlight_fnc(m_views[i])) {
           m_current_view = i;
         }
@@ -371,7 +384,7 @@ void HexEdit::DrawHexEdit() {
       auto handleTooltipAndClick = [&]() {
         // tooltip
         if (ImGui::IsItemHovered()) {
-          if(m_current_view >= 0 && m_current_view < m_views.size()) {
+          if(m_current_view >= 0 && (size_t)m_current_view < m_views.size()) {
             ImGui::SetTooltip("%s", m_views[m_current_view].name);
           }
         }
@@ -379,7 +392,7 @@ void HexEdit::DrawHexEdit() {
         // text selection
         if (ImGui::IsMouseDown(0)) {
           if (ImGui::IsItemHovered()) {
-            if(m_current_view >= 0 && m_current_view < m_views.size()) {
+            if(m_current_view >= 0 && (size_t)m_current_view < m_views.size()) {
               m_selected_view = m_views[m_current_view].id;
             }
 
@@ -460,7 +473,6 @@ void HexEdit::DrawHexEdit() {
     if (ImGui::DragInt("##rows", &Rows, 0.2f, 4, 32, "%.0f rows")) ContentsWidthChanged = true;
     ImGui::PopItemWidth();
 
-    //ImGui::Checkbox("Show HexII", &OptShowHexII);
     if (ImGui::Checkbox("Show Ascii", &OptShowAscii)) ContentsWidthChanged = true;
     ImGui::Checkbox("Grey out zeroes", &OptGreyOutZeroes);
 
@@ -536,7 +548,41 @@ void HexEdit::DrawHexGraph() {
 }
 
 void HexEdit::DrawHexTable() {
+  {
+    ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+    //ImGui::BeginChild("HexTable", ImVec2(0,300), true);
+    ImGui::Columns(data_X.size() + 1);
 
+    ImGui::Text(" ");
+    ImGui::NextColumn();
+
+    char buf[32];
+
+    for (int x=0; x < data_X.size(); x++)
+    {
+      snprintf(buf, sizeof(buf), "##x%d", x);
+      ImGui::InputFloat(buf, &data_X[x], 0.0f, 0.0f, 2, ImGuiInputTextFlags_EnterReturnsTrue);
+      ImGui::NextColumn();
+    }
+
+    ImGui::Separator();
+
+    for(int y=0; y < data_Y.size(); y++) {
+      snprintf(buf, sizeof(buf), "##y%d", y);
+      ImGui::InputFloat(buf, &data_Y[y], 0.0f, 0.0f, 2, ImGuiInputTextFlags_EnterReturnsTrue);
+      ImGui::NextColumn();
+
+      for (int x = 0; x < data_X.size(); x++)
+      {
+        snprintf(buf, sizeof(buf), "##d%d", x+(y*data_X.size()));
+        ImGui::InputFloat(buf, &data[x + y * data_X.size()], 0.0f, 0.0f, 2, ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::NextColumn();
+      }
+    }
+
+    //ImGui::EndChild();
+    ImGui::PopStyleVar();
+  }
 }
 
 #undef _PRISizeT

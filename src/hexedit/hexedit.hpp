@@ -52,6 +52,10 @@ private:
   size_t m_selected_view = 0;
   size_t m_cursor = 0;
 
+  std::vector<float> data_X;
+  std::vector<float> data_Y;
+  std::vector<float> data;
+
 public:
   // all the current views
   std::vector<HexView> m_views;
