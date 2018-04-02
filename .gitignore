@@ -18,3 +18,8 @@ latex
 html
 .idea
 cmake-build-*
+*.o
+*.deps
+.redo
+*.json
+hexx0ar
