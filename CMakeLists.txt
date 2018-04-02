@@ -36,21 +36,11 @@ include_directories("/mingw64/include/")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src")
 include_directories(${LUA_INCLUDE_DIR})
 include_directories(${GLM_INCLUDE_DIRS})
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/dependecies/imgui")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/dependecies/sol")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/dependecies/json/include/")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/dependecies/json/include/nlohmann")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/deps/imgui")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/src/deps/json")
 include_directories("${CMAKE_BINARY_DIR}/src/")
 
 link_directories(${Boost_LIBRARY_DIRS})
-
-# version number
-set(VERSION_MAJOR   0   CACHE STRING "Project major version number.")
-set(VERSION_MINOR   1   CACHE STRING "Project minor version number.")
-set(VERSION_PATCH   0   CACHE STRING "Project patch version number.")
-mark_as_advanced(VERSION_MAJOR VERSION_MINOR VERSION_PATCH)
-
-configure_file(src/application/version.hpp.in src/application/version.hpp)
 
 ## definitions
 
@@ -59,9 +49,9 @@ if (Debug)
 endif ()
 
 set(SOURCE_FILES
-        dependecies/imgui/imgui_draw.cpp
-        dependecies/imgui/imgui.cpp
-        dependecies/imgui/imgui_demo.cpp
+        src/deps/imgui/imgui_draw.cpp
+        src/deps/imgui/imgui.cpp
+        src/deps/imgui/imgui_demo.cpp
         src/application/application.cpp
         src/application/log.cpp
         src/application/version.hpp
