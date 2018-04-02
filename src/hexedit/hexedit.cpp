@@ -1,8 +1,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <cstring>
 #include <application/log.hpp>
-#include <SDL2/SDL_video.h>
 #include "hexedit.hpp"
 
 namespace fs = boost::filesystem;
@@ -237,11 +235,13 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
 
   ImGui::InputFloat("text scale", &ImGui::GetFont()->Scale, 0.1f, 0.1f, 3, ImGuiInputTextFlags_EnterReturnsTrue);
 
-  static bool b = false;
-  ImGui::Checkbox("demo window", &b);
-  if(b) {
+  static bool demo_wnd = false;
+  ImGui::Checkbox("demo window", &demo_wnd);
+  if(demo_wnd) {
     ImGui::ShowDemoWindow();
   }
+  ImGui::ShowFontSelector("Font Selector");
+  ImGui::ShowStyleSelector("Style Selector");
 
   ImGui::End();
 }

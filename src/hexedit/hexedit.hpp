@@ -70,7 +70,6 @@ public:
   bool            ReadOnly;                               // = false  // set to true to disable any editing
   int             Rows;                                   // = 16     //
   bool            OptShowAscii;                           // = true   //
-  bool            OptShowHexII;                           // = false  //
   bool            OptGreyOutZeroes;                       // = true   //
   int             OptMidRowsCount;                        // = 8      // set to 0 to disable extra spacing between every mid-rows
   int             OptAddrDigitsCount;                     // = 0      // number of addr digits to display (default calculated based on maximum displayed addr)

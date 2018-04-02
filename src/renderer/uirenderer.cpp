@@ -6,6 +6,10 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include "uirenderer.hpp"
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+
+namespace fs = boost::filesystem;
 
 static const char *vs_source = "colored_texture.vs";
 static const char *fs_source = "colored_texture.fs";
@@ -49,6 +53,10 @@ void UIRenderer::init() {
   io.SetClipboardTextFn = ImGui_SetClipboardText;
   io.GetClipboardTextFn = ImGui_GetClipboardText;
   io.ClipboardUserData = NULL;
+
+  std::string fontpath = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf";
+  if(fs::exists(fs::path(fontpath)))
+    ImGui::GetIO().Fonts->AddFontFromFileTTF(fontpath.c_str(), 13);
 
   unsigned char* pixels;
   int width, height;
