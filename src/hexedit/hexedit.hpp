@@ -50,6 +50,7 @@ private:
   bool m_clicked = false;
   size_t m_click_start, m_click_current;
   size_t m_selected_view = 0;
+  int m_current_view = -1;
   size_t m_cursor = 0;
 
   std::vector<float> data_X;
@@ -95,6 +96,8 @@ public:
 
   // creates everything ( hexedit, view & graph )
   void BeginWindow(const char *title, size_t w, size_t h, size_t m_delta);
+
+  void DrawRightClickPopup();
 
   // renders the content of the hex editor window
   void DrawHexEdit();

@@ -24,3 +24,5 @@ cmake-build-*
 *.json
 hexx0ar
 .do_built*
+*.did
+*.deps_ne

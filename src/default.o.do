@@ -4,14 +4,11 @@ deps=$2.deps
 deps_ne=$2.deps_ne
 cflags="-O2 -MD -MF $deps"
 
-echo $1
-echo $2
-echo $3
-
 if (command -v strace >/dev/null); then
   strace -e stat,stat64,fstat,fstat64,lstat,lstat64 -f 2>&1 >/dev/null \
    gcc $cflags -o $3 -c ${1%.o}.c \
    |grep '1 ENOENT'\
+   |grep '\.h'\
    |cut -d'"' -f2\
    >$deps_ne
 
@@ -28,9 +25,9 @@ else
   g++ -std=c++14 $cflags -o $3 -c ${1%.o}.cpp \
   -I. \
   -I./deps/imgui/ \
-  -I./deps/json/ \
-
-fi
+  -I./deps/json/ 
 
 read DEPS <$deps
 redo-ifchange ${DEPS#*:}
+
+fi

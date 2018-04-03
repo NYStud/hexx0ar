@@ -1,6 +1,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <application/log.hpp>
+#include <algorithm>
 #include "hexedit.hpp"
 
 namespace fs = boost::filesystem;
@@ -265,23 +266,7 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
 #define _PRISizeT   "zX"
 #endif
 
-void HexEdit::DrawHexEdit() {
-  CalcSizes();
-  ImGuiStyle& style = ImGui::GetStyle();
-
-  const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing(); // 1 separator, 1 input text
-  ImGui::BeginChild("##scrolling", ImVec2(0, -footer_height_to_reserve));
-  ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
-
-  const int line_total_count = (int)((mem_size + Rows - 1) / Rows);
-  ImGuiListClipper clipper(line_total_count, LineHeight);
-
-  //const size_t visible_start_addr = clipper.DisplayStart * Rows;
-  //const size_t visible_end_addr = clipper.DisplayEnd * Rows;
-
+void HexEdit::DrawRightClickPopup() {
   if(ImGui::IsMouseClicked(1)) {
     ImGui::OpenPopup("##contextmenu");
   }
@@ -312,6 +297,26 @@ void HexEdit::DrawHexEdit() {
     }
     ImGui::EndPopup();
   }
+}
+
+void HexEdit::DrawHexEdit() {
+  CalcSizes();
+  ImGuiStyle& style = ImGui::GetStyle();
+
+  DrawRightClickPopup();
+
+  const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing(); // 1 separator, 1 input text
+  ImGui::BeginChild("##scrolling", ImVec2(0, -footer_height_to_reserve));
+  ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+  const int line_total_count = (int)((mem_size + Rows - 1) / Rows);
+  ImGuiListClipper clipper(line_total_count, LineHeight);
+
+  //const size_t visible_start_addr = clipper.DisplayStart * Rows;
+  //const size_t visible_end_addr = clipper.DisplayEnd * Rows;
 
   // Draw vertical separator
   ImVec2 window_pos = ImGui::GetWindowPos();
@@ -320,6 +325,12 @@ void HexEdit::DrawHexEdit() {
 
   const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
   const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;
+
+  /*
+  draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart, window_pos.y),
+                           ImVec2(window_pos.x + PosHexEnd, window_pos.y + (clipper.DisplayEnd - clipper.DisplayStart) * LineHeight),
+                           IM_COL32(255,0,0,128), 3.0f);
+*/
 
   // render all visible lines
   for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++)
@@ -346,8 +357,8 @@ void HexEdit::DrawHexEdit() {
       // highlights a byte, if there's a view for it
       // returns whether the byte was highlighted or not
       auto highlight_fnc = [&](HexView& v) -> bool {
-        auto min = v.start;
-        auto max = v.end + 1;
+        auto min = std::max((size_t)0, v.start);
+        auto max = std::min(v.end + 1, mem_size);
         if((addr >= min && addr < max)) {
           ImVec2 pos = ImGui::GetCursorScreenPos();
           float highlight_width = GlyphWidth * 2;
@@ -370,7 +381,7 @@ void HexEdit::DrawHexEdit() {
       // highlight current selection
       highlight_fnc(hv);
       // this variable contains the currently highlighted view
-      int m_current_view = -1;
+      m_current_view = -1;
       // highlight views
       for(size_t i=0; i < m_views.size(); i++) {
         if(highlight_fnc(m_views[i])) {
@@ -544,6 +555,7 @@ void HexEdit::DrawHexView() {
 }
 
 void HexEdit::DrawHexGraph() {
+
   ImGui::Image(0, ImVec2(m_width/3, m_height/2));
 }
 
