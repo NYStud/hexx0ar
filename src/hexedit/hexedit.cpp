@@ -4,6 +4,10 @@
 #include <algorithm>
 #include "hexedit.hpp"
 
+
+static int a = 3;
+static int a_e = 20;
+
 namespace fs = boost::filesystem;
 
 void to_json(json& j, const HexView& v) {
@@ -31,14 +35,37 @@ void from_json(const json& j, HexView& v) {
   v.color.w = j.at("color_a").get<float>();
 }
 
+size_t HexEdit::getRow(size_t addr) {
+  return (size_t)(addr/Columns);
+}
+
+size_t HexEdit::getCol(size_t addr) {
+  return addr%Columns;
+}
+
+float HexEdit::getTopX(size_t addr) {
+  return HexCellWidth*getCol(addr) + (0.5f*GlyphWidth)*((size_t)(getCol(addr)/8));
+}
+
+float HexEdit::getTopY(size_t addr) {
+  return LineHeight*getRow(addr);
+}
+
+float HexEdit::getBottomX(size_t addr) {
+  return getTopX(addr)+(2*GlyphWidth);
+}
+float HexEdit::getBottomY(size_t addr) {
+  return getTopY(addr)+LineHeight;
+}
+
 HexEdit::HexEdit() {
   // Settings
   Open = true;
   ReadOnly = false;
-  Rows = 16;
+  Columns = 16;
   OptShowAscii = true;
   OptGreyOutZeroes = true;
-  OptMidRowsCount = 8;
+  OptMidColumnsCount = 8;
   OptAddrDigitsCount = 0;
   ReadFn = [](uint8_t* data, size_t off) -> uint8_t { return (data != 0) ? data[off] : 0; };
   // todo: writefn
@@ -116,17 +143,17 @@ void HexEdit::CalcSizes() {
       AddrDigitsCount++;
   LineHeight = ImGui::GetTextLineHeight();
   GlyphWidth = ImGui::CalcTextSize("F").x + 1;                  // We assume the font is mono-space
-  HexCellWidth = (float)(int)(GlyphWidth * 2.5f);             // "FF " we include trailing space in the width to easily catch clicks everywhere
-  SpacingBetweenMidRows = (float)(int)(HexCellWidth * 0.25f); // Every OptMidRowsCount columns we add a bit of extra spacing
+  HexCellWidth = (GlyphWidth * 2.5f);             // "FF " we include trailing space in the width to easily catch clicks everywhere
+  SpacingBetweenMidColumns = (HexCellWidth * 0.25f); // Every OptMidColumnsCount columns we add a bit of extra spacing
   PosHexStart = (AddrDigitsCount + 2) * GlyphWidth;
-  PosHexEnd = PosHexStart + (HexCellWidth * Rows);
+  PosHexEnd = PosHexStart + (HexCellWidth * Columns);
   PosAsciiStart = PosAsciiEnd = PosHexEnd;
   if (OptShowAscii)
   {
     PosAsciiStart = PosHexEnd + GlyphWidth * 1;
-    if (OptMidRowsCount > 0)
-      PosAsciiStart += ((Rows + OptMidRowsCount - 1) / OptMidRowsCount) * SpacingBetweenMidRows;
-    PosAsciiEnd = PosAsciiStart + Rows * GlyphWidth;
+    if (OptMidColumnsCount > 0)
+      PosAsciiStart += ((Columns + OptMidColumnsCount - 1) / OptMidColumnsCount) * SpacingBetweenMidColumns;
+    PosAsciiEnd = PosAsciiStart + Columns * GlyphWidth;
   }
   HexEdit_WindowWidth = PosAsciiEnd + style.ScrollbarSize + style.WindowPadding.x * 2 + GlyphWidth;
   HexView_WindowWidth = (m_width - HexEdit_WindowWidth)/2;
@@ -257,6 +284,18 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
   ImGui::ShowFontSelector("Font Selector");
   ImGui::ShowStyleSelector("Style Selector");
 
+  ImGui::InputInt("test a", &a);
+  ImGui::InputInt("test a end", &a_e);
+
+  ImGui::Text("rows: %d", Columns);
+  ImGui::Text("addr: %d", a);
+  ImGui::Text("row/col: %d, %d", getRow(a), getCol(a));
+  ImGui::Text("top: %f, %f", getTopX(a), getTopY(a));
+  ImGui::Text("bottom: %f, %f", getBottomX(a), getBottomY(a));
+
+  ImGui::Text("GlyphWidth: %f", GlyphWidth);
+  ImGui::Text("Spacing: %f", SpacingBetweenMidColumns);
+
   ImGui::End();
 }
 
@@ -312,82 +351,137 @@ void HexEdit::DrawHexEdit() {
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
-  const int line_total_count = (int)((mem_size + Rows - 1) / Rows);
+  const int line_total_count = (int)((mem_size + Columns - 1) / Columns);
   ImGuiListClipper clipper(line_total_count, LineHeight);
 
-  //const size_t visible_start_addr = clipper.DisplayStart * Rows;
-  //const size_t visible_end_addr = clipper.DisplayEnd * Rows;
+  const size_t visible_start_addr = clipper.DisplayStart * Columns;
+  const size_t visible_end_addr = clipper.DisplayEnd * Columns;
 
   // Draw vertical separator
   ImVec2 window_pos = ImGui::GetWindowPos();
   if (OptShowAscii)
-    draw_list->AddLine(ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y), ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
+    draw_list->AddLine(ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y),
+                       ImVec2(window_pos.x + PosAsciiStart - GlyphWidth, window_pos.y + 9999), ImGui::GetColorU32(ImGuiCol_Border));
 
   const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
   const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;
 
-  /*
-  draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart, window_pos.y),
-                           ImVec2(window_pos.x + PosHexEnd, window_pos.y + (clipper.DisplayEnd - clipper.DisplayStart) * LineHeight),
-                           IM_COL32(255,0,0,128), 3.0f);
-*/
+  // highlights a byte, if there's a view for it
+  // returns whether the byte was highlighted or not
+  auto highlight_fnc = [&](HexView& v) {
+    auto min = std::max((size_t)0, v.start);
+    auto max = std::min(v.end, mem_size);
+
+    switch(v.mode) {
+      case HexViewMode_Filled: {
+        if(getRow(max) - getRow(min) == 0) {
+          draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
+                                   ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+                                   ImColor(v.color));
+        } else {
+          draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
+                                   ImVec2(window_pos.x + PosHexStart + getBottomX(Columns - 1), window_pos.y + getBottomY(min)),
+                                   ImColor(v.color));
+
+          if(getRow(max) - getRow(min) > 1) {
+            draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart, window_pos.y + (getRow(min)+1)*LineHeight),
+                                     ImVec2(window_pos.x + PosHexStart + getBottomX(Columns - 1), window_pos.y + (getRow(max))*LineHeight),
+                                     ImColor(v.color));
+          }
+
+          draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart, window_pos.y + getTopY(max)),
+                                   ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+                                   ImColor(v.color));
+        }
+        break;
+      }
+      case HexViewMode_Line: {
+        if(getRow(max) - getRow(min) == 0) {
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
+                             ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getTopY(max)),
+                             ImColor(v.color), 3.0f);
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getBottomY(min)),
+                             ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+                             ImColor(v.color), 3.0f);
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
+                             ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getBottomY(min)),
+                             ImColor(v.color), 3.0f);
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getTopY(max)),
+                             ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+                             ImColor(v.color), 3.0f);
+        } else {
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
+                             ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getTopY(min)),
+                             ImColor(v.color), 3.0f);
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getBottomY(min)),
+                             ImVec2(window_pos.x + PosHexStart, window_pos.y + getBottomY(min)),
+                             ImColor(v.color), 3.0f);
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
+                             ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getBottomY(min)),
+                             ImColor(v.color), 3.0f);
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getTopY(min)),
+                             ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getBottomY(min)),
+                             ImColor(v.color), 3.0f);
+
+          if(getRow(max) - getRow(min) > 1) {
+            draw_list->AddLine(ImVec2(window_pos.x + PosHexStart, window_pos.y + getBottomY(min)),
+                               ImVec2(window_pos.x + PosHexStart, window_pos.y + getTopY(max)),
+                               ImColor(v.color), 3.0f);
+            draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getBottomY(min)),
+                               ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getTopY(max)),
+                               ImColor(v.color), 3.0f);
+          }
+
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+                             ImVec2(window_pos.x + PosHexStart, window_pos.y + getBottomY(max)),
+                             ImColor(v.color), 3.0f);
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getTopY(max)),
+                             ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getTopY(max)),
+                             ImColor(v.color), 3.0f);
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+                             ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getTopY(max)),
+                             ImColor(v.color), 3.0f);
+          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart, window_pos.y + getBottomY(max)),
+                             ImVec2(window_pos.x + PosHexStart, window_pos.y + getTopY(max)),
+                             ImColor(v.color), 3.0f);
+        }
+        break;
+      }
+    }
+
+  };
+
+  HexView hv;
+  strcpy(hv.name, "New View");
+  hv.start = std::min(m_click_start, m_click_current);
+  hv.end = std::max(m_click_start, m_click_current);
+  hv.color = ImColor(IM_COL32(255,0,0,128));
+  hv.mode = HexViewMode_Line;
+
+  // highlight current selection
+  highlight_fnc(hv);
+  // this variable contains the currently highlighted view
+  m_current_view = -1;
+  // highlight views
+  for(size_t i=0; i < m_views.size(); i++) {
+    highlight_fnc(m_views[i]);
+  }
 
   // render all visible lines
   for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++)
   {
     // calculate first address of line
-    size_t addr = (size_t)(line_i * Rows);
+    size_t addr = (size_t)(line_i * Columns);
     // render first line number
     ImGui::Text("%0*" _PRISizeT ": ", (int)AddrDigitsCount, base_display_addr + addr);
 
     // render all hex numbers
-    for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
+    for (int n = 0; n < Columns && addr < mem_size; n++, addr++)
     {
       float uint8_t_pos_x = PosHexStart + HexCellWidth * n;
-      if (OptMidRowsCount > 0)
-        uint8_t_pos_x += (n / OptMidRowsCount) * SpacingBetweenMidRows;
+      if (OptMidColumnsCount > 0)
+        uint8_t_pos_x += (n / OptMidColumnsCount) * SpacingBetweenMidColumns;
       ImGui::SameLine(uint8_t_pos_x);
-
-      HexView hv;
-      strcpy(hv.name, "New View");
-      hv.start = std::min(m_click_start, m_click_current);
-      hv.end = std::max(m_click_start, m_click_current);
-      hv.color = ImColor(IM_COL32(255,0,0,128));
-
-      // highlights a byte, if there's a view for it
-      // returns whether the byte was highlighted or not
-      auto highlight_fnc = [&](HexView& v) -> bool {
-        auto min = std::max((size_t)0, v.start);
-        auto max = std::min(v.end + 1, mem_size);
-        if((addr >= min && addr < max)) {
-          ImVec2 pos = ImGui::GetCursorScreenPos();
-          float highlight_width = GlyphWidth * 2;
-          bool is_next_uint8_t_highlighted =  (addr + 1 < mem_size) && ((max != (size_t)-1 && addr + 1 < max));
-          if (is_next_uint8_t_highlighted || (n + 1 == Rows))
-          {
-            highlight_width = HexCellWidth;
-            if (OptMidRowsCount > 0 && n > 0 && (n + 1) < Rows && ((n + 1) % OptMidRowsCount) == 0)
-              highlight_width += SpacingBetweenMidRows;
-          }
-
-          draw_list->AddRectFilled(pos, ImVec2(pos.x + highlight_width, pos.y + LineHeight), ImColor(v.color));
-
-          return true;
-        } else {
-          return false;
-        }
-      };
-
-      // highlight current selection
-      highlight_fnc(hv);
-      // this variable contains the currently highlighted view
-      m_current_view = -1;
-      // highlight views
-      for(size_t i=0; i < m_views.size(); i++) {
-        if(highlight_fnc(m_views[i])) {
-          m_current_view = i;
-        }
-      }
 
       // read current byte
       uint8_t b = ReadFn(mem_data, addr);
@@ -451,7 +545,7 @@ void HexEdit::DrawHexEdit() {
       // Draw ASCII values
       ImGui::SameLine(PosAsciiStart);
       ImVec2 pos = ImGui::GetCursorScreenPos();
-      addr = line_i * Rows;
+      addr = line_i * Columns;
       ImGui::PushID(line_i);
       if (ImGui::InvisibleButton("ascii", ImVec2(PosAsciiEnd - PosAsciiStart, LineHeight)))
       {
@@ -459,7 +553,7 @@ void HexEdit::DrawHexEdit() {
         //DataEditingTakeFocus = true;
       }
       ImGui::PopID();
-      for (int n = 0; n < Rows && addr < mem_size; n++, addr++)
+      for (int n = 0; n < Columns && addr < mem_size; n++, addr++)
       {
         unsigned char c = ReadFn(mem_data, addr);
         char display_c = (c < 32 || c >= 128) ? '.' : c;
@@ -481,7 +575,7 @@ void HexEdit::DrawHexEdit() {
   if (ImGui::BeginPopup("context"))
   {
     ImGui::PushItemWidth(56);
-    if (ImGui::DragInt("##rows", &Rows, 0.2f, 4, 32, "%.0f rows")) ContentsWidthChanged = true;
+    if (ImGui::DragInt("##rows", &Columns, 0.2f, 4, 32, "%.0f rows")) ContentsWidthChanged = true;
     ImGui::PopItemWidth();
 
     if (ImGui::Checkbox("Show Ascii", &OptShowAscii)) ContentsWidthChanged = true;
@@ -509,7 +603,7 @@ void HexEdit::DrawHexEdit() {
     if (GotoAddr < mem_size)
     {
       ImGui::BeginChild("##scrolling");
-      ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + (GotoAddr / Rows) * ImGui::GetTextLineHeight());
+      ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + (GotoAddr / Columns) * ImGui::GetTextLineHeight());
       ImGui::EndChild();
     }
     GotoAddr = (size_t)-1;
@@ -546,6 +640,31 @@ void HexEdit::DrawHexView() {
                     ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue);
     ImGui::InputInt("end", (int*)&m_views[m_selected_view].end, 1, 16,
                     ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_EnterReturnsTrue);
+
+    const char* items[] = { "Filled", "Line" };
+    int item_current;
+    switch(m_views[m_selected_view].mode) {
+      case HexViewMode_Filled: {
+        item_current = 0;
+        break;
+      }
+      case HexViewMode_Line: {
+        item_current = 1;
+        break;
+    }
+    }
+    ImGui::Combo("combo", &item_current, items, IM_ARRAYSIZE(items));
+    switch(item_current) {
+      case 0: {
+        m_views[m_selected_view].mode = HexViewMode_Filled;
+        break;
+      }
+      case 1: {
+        m_views[m_selected_view].mode = HexViewMode_Line;
+        break;
+      }
+    }
+
     ImGui::Text("size: %lu", m_views[m_selected_view].end - (m_views[m_selected_view].start - 1));
     //todo: value
     //ImGui::InputText("hexadecimal", 0,0, ImGuiInputTextFlags_CharsHexadecimal | ImGuiInputTextFlags_CharsUppercase);

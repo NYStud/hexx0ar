@@ -15,12 +15,16 @@
 
 using json = nlohmann::json;
 
+enum HexViewMode { HexViewMode_Filled, HexViewMode_Line };
+
 struct HexView {
   size_t id;
   char name[1024];
   size_t start, end;
+  HexViewMode mode = HexViewMode_Filled;
   ImVec4 color;
 };
+
 inline bool operator< (const HexView& lhs, const HexView& rhs){ return lhs.start < rhs.start; }
 inline bool operator> (const HexView& lhs, const HexView& rhs){ return rhs < lhs; }
 inline bool operator<=(const HexView& lhs, const HexView& rhs){ return !(lhs > rhs); }
@@ -33,18 +37,18 @@ private:
   size_t m_height = 0;
 
   // current sizes
-  uint32_t     AddrDigitsCount;
-  float   LineHeight;
-  float   GlyphWidth;
-  float   HexCellWidth;
-  float   SpacingBetweenMidRows;
-  float   PosHexStart;
-  float   PosHexEnd;
-  float   PosAsciiStart;
-  float   PosAsciiEnd;
-  float   HexEdit_WindowWidth;
-  float   HexView_WindowWidth;
-  float   HexGraph_WindowWidth;
+  uint32_t AddrDigitsCount;
+  float LineHeight;
+  float GlyphWidth;
+  float HexCellWidth;
+  float SpacingBetweenMidColumns;
+  float PosHexStart;
+  float PosHexEnd;
+  float PosAsciiStart;
+  float PosAsciiEnd;
+  float HexEdit_WindowWidth;
+  float HexView_WindowWidth;
+  float HexGraph_WindowWidth;
 
   // used for view selection
   bool m_clicked = false;
@@ -56,6 +60,17 @@ private:
   std::vector<float> data_X;
   std::vector<float> data_Y;
   std::vector<float> data;
+
+  size_t getRow(size_t addr);
+  size_t getCol(size_t addr);
+  // returns upper left x
+  float getTopX(size_t addr);
+  // returns upper left y
+  float getTopY(size_t addr);
+  // returns lower right x
+  float getBottomX(size_t addr);
+  // returns lower right y
+  float getBottomY(size_t addr);
 
 public:
   // all the current views
@@ -71,13 +86,14 @@ public:
 
   // original memory editor settings
   // todo: refactor
-  bool            Open;                                   // = true   // set to false when DrawWindow() was closed. ignore if not using DrawWindow
-  bool            ReadOnly;                               // = false  // set to true to disable any editing
-  int             Rows;                                   // = 16     //
-  bool            OptShowAscii;                           // = true   //
-  bool            OptGreyOutZeroes;                       // = true   //
-  int             OptMidRowsCount;                        // = 8      // set to 0 to disable extra spacing between every mid-rows
-  int             OptAddrDigitsCount;                     // = 0      // number of addr digits to display (default calculated based on maximum displayed addr)
+  bool            Open;               // set to false when DrawWindow() was closed. ignore if not using DrawWindow
+  bool            ReadOnly;           // set to true to disable any editing
+  int             Columns;            //
+  bool            OptShowAscii;       //
+  bool            OptGreyOutZeroes;   //
+  int             OptMidColumnsCount; // set to 0 to disable extra spacing between every mid-rows
+  int             OptAddrDigitsCount; // number of addr digits to display (default calculated based on maximum displayed addr)
+
   std::function<uint8_t(uint8_t* data, size_t off)> ReadFn;
   std::function<void(uint8_t* data, size_t off, uint8_t d)> WriteFn;
 

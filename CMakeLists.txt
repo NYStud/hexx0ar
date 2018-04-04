@@ -73,7 +73,7 @@ add_executable(${TARGET_NAME} ${SOURCE_FILES} ${MAIN_SRC})
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 14)
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 target_compile_options(${TARGET_NAME} PRIVATE -Wall -Wextra)
-target_compile_options(${TARGET_NAME} PRIVATE $<$<CONFIG:DEBUG>:-g -O2>)
+target_compile_options(${TARGET_NAME} PRIVATE $<$<CONFIG:DEBUG>:-g -O0>)
 target_compile_options(${TARGET_NAME} PRIVATE $<$<CONFIG:RELEASE>:-O3>)
 
 target_link_libraries(${TARGET_NAME} ${EPOXY_LIBRARIES})
