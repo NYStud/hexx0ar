@@ -72,6 +72,8 @@ private:
   // returns lower right y
   float getBottomY(size_t addr);
 
+  int isHighlighted(size_t addr);
+
 public:
   // all the current views
   std::vector<HexView> m_views;

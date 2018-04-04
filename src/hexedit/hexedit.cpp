@@ -58,6 +58,15 @@ float HexEdit::getBottomY(size_t addr) {
   return getTopY(addr)+LineHeight;
 }
 
+int HexEdit::isHighlighted(size_t addr) {
+  for(int i = 0; (size_t)i < m_views.size(); i++) {
+    if(m_views[i].start >= addr && m_views[i].end <= addr) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 HexEdit::HexEdit() {
   // Settings
   Open = true;
@@ -205,6 +214,19 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
         }
         ImGui::EndMenu();
       }
+      // Options menu
+      if (ImGui::BeginMenu("Options"))
+      {
+        ImGui::PushItemWidth(56);
+        if (ImGui::DragInt("##rows", &Columns, 0.2f, 4, 32, "%.0f rows")) ContentsWidthChanged = true;
+        ImGui::PopItemWidth();
+
+        if (ImGui::Checkbox("Show Ascii", &OptShowAscii)) ContentsWidthChanged = true;
+        ImGui::Checkbox("Grey out zeroes", &OptGreyOutZeroes);
+
+        ImGui::EndMenu();
+      }
+
       ImGui::EndMenuBar();
     }
 
@@ -460,8 +482,6 @@ void HexEdit::DrawHexEdit() {
 
   // highlight current selection
   highlight_fnc(hv);
-  // this variable contains the currently highlighted view
-  m_current_view = -1;
   // highlight views
   for(size_t i=0; i < m_views.size(); i++) {
     highlight_fnc(m_views[i]);
@@ -490,7 +510,8 @@ void HexEdit::DrawHexEdit() {
         // tooltip
         if (ImGui::IsItemHovered()) {
           if(m_current_view >= 0 && (size_t)m_current_view < m_views.size()) {
-            ImGui::SetTooltip("%s", m_views[m_current_view].name);
+            ImGui::SetTooltip("%s | %d bytes", m_views[m_current_view].name,
+                              m_views[m_current_view].end - m_views[m_current_view].start);
           }
         }
 
@@ -569,20 +590,7 @@ void HexEdit::DrawHexEdit() {
 
   ImGui::Separator();
 
-  // Options menu
-  if (ImGui::Button("Options"))
-    ImGui::OpenPopup("context");
-  if (ImGui::BeginPopup("context"))
-  {
-    ImGui::PushItemWidth(56);
-    if (ImGui::DragInt("##rows", &Columns, 0.2f, 4, 32, "%.0f rows")) ContentsWidthChanged = true;
-    ImGui::PopItemWidth();
-
-    if (ImGui::Checkbox("Show Ascii", &OptShowAscii)) ContentsWidthChanged = true;
-    ImGui::Checkbox("Grey out zeroes", &OptGreyOutZeroes);
-
-    ImGui::EndPopup();
-  }
+  ImGui::Text("Position: 0");
 
   ImGui::SameLine();
   ImGui::Text("Range %0*" _PRISizeT "..%0*" _PRISizeT, AddrDigitsCount, base_display_addr, AddrDigitsCount, base_display_addr + mem_size - 1);
