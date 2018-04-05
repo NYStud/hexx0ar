@@ -66,6 +66,9 @@ void UIRenderer::init() {
     }
     io.FontDefault = io.Fonts->Fonts[4];
   }
+  float dpi = 0.0f;
+  SDL_GetDisplayDPI(0, &dpi, NULL, NULL);
+  io.FontGlobalScale = dpi/96.0f;
 
   unsigned char* pixels;
   int width, height;

@@ -297,7 +297,7 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
   auto str = std::to_string(m_delta) + " ms";
   ImGui::Text("time per frame: %s", str.c_str());
 
-  ImGui::InputFloat("text scale", &ImGui::GetFont()->Scale, 0.1f, 0.1f, 3, ImGuiInputTextFlags_EnterReturnsTrue);
+  ImGui::InputFloat("text scale", &ImGui::GetIO().FontGlobalScale, 0.1f, 0.1f, 3, ImGuiInputTextFlags_EnterReturnsTrue);
 
   static bool demo_wnd = false;
   ImGui::Checkbox("demo window", &demo_wnd);
