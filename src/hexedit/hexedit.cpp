@@ -60,7 +60,7 @@ float HexEdit::getBottomY(size_t addr) {
 
 int HexEdit::isHighlighted(size_t addr) {
   for(int i = 0; (size_t)i < m_views.size(); i++) {
-    if(m_views[i].start >= addr && m_views[i].end <= addr) {
+    if(m_views[i].start <= addr && m_views[i].end >= addr) {
       return i;
     }
   }
@@ -311,7 +311,7 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
 
   ImGui::Text("rows: %d", Columns);
   ImGui::Text("addr: %d", a);
-  ImGui::Text("row/col: %d, %d", getRow(a), getCol(a));
+  ImGui::Text("row/col: %lu, %lu", getRow(a), getCol(a));
   ImGui::Text("top: %f, %f", getTopX(a), getTopY(a));
   ImGui::Text("bottom: %f, %f", getBottomX(a), getBottomY(a));
 
@@ -507,10 +507,12 @@ void HexEdit::DrawHexEdit() {
       uint8_t b = ReadFn(mem_data, addr);
 
       auto handleTooltipAndClick = [&]() {
+        m_current_view = isHighlighted(addr);
+
         // tooltip
         if (ImGui::IsItemHovered()) {
           if(m_current_view >= 0 && (size_t)m_current_view < m_views.size()) {
-            ImGui::SetTooltip("%s | %d bytes", m_views[m_current_view].name,
+            ImGui::SetTooltip("%s | %lu bytes", m_views[m_current_view].name,
                               m_views[m_current_view].end - m_views[m_current_view].start);
           }
         }
@@ -530,6 +532,7 @@ void HexEdit::DrawHexEdit() {
               m_click_current = addr;
             }
           }
+          ImGui::SetTooltip("%lu bytes", m_click_current - m_click_start);
         } else {
           m_clicked = false;
         }
@@ -659,7 +662,7 @@ void HexEdit::DrawHexView() {
       case HexViewMode_Line: {
         item_current = 1;
         break;
-    }
+      }
     }
     ImGui::Combo("combo", &item_current, items, IM_ARRAYSIZE(items));
     switch(item_current) {
