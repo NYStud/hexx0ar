@@ -532,7 +532,7 @@ void HexEdit::DrawHexEdit() {
               m_click_current = addr;
             }
           }
-          ImGui::SetTooltip("%lu bytes", m_click_current - m_click_start);
+          ImGui::SetTooltip("%lu bytes", std::max(m_click_start, m_click_current) - std::min(m_click_start, m_click_current));
         } else {
           m_clicked = false;
         }
