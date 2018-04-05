@@ -57,8 +57,11 @@ void UIRenderer::init() {
   io.ClipboardUserData = NULL;
 
   std::string fontpath = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf";
+  auto config = ImFontConfig();
+  config.OversampleH = 8;
+  config.OversampleV = 8;
   if(fs::exists(fs::path(fontpath)))
-    ImGui::GetIO().Fonts->AddFontFromFileTTF(fontpath.c_str(), 13);
+    ImGui::GetIO().Fonts->AddFontFromFileTTF(fontpath.c_str(), 13, &config);
 
   unsigned char* pixels;
   int width, height;
@@ -100,8 +103,8 @@ void UIRenderer::init() {
   m_fonttex.bind();
   glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
   m_fonttex.fill(0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
   // Store our identifier
   io.Fonts->TexID = (void *)(intptr_t)m_fonttex.id();
