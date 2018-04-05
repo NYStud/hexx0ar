@@ -151,7 +151,7 @@ void HexEdit::CalcSizes() {
   if (AddrDigitsCount == 0)
     for (size_t n = base_display_addr + mem_size - 1; n > 0; n >>= 4)
       AddrDigitsCount++;
-  LineHeight = ImGui::GetTextLineHeight();
+  LineHeight = (float)(int)ImGui::GetTextLineHeight();
   GlyphWidth = ImGui::CalcTextSize("F").x + 1;                  // We assume the font is mono-space
   HexCellWidth = (GlyphWidth * 2.5f);             // "FF " we include trailing space in the width to easily catch clicks everywhere
   SpacingBetweenMidColumns = (HexCellWidth * 0.25f); // Every OptMidColumnsCount columns we add a bit of extra spacing
