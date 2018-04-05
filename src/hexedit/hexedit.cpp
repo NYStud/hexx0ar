@@ -2,6 +2,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <application/log.hpp>
 #include <algorithm>
+#include <SDL2/SDL_video.h>
 #include "hexedit.hpp"
 
 
@@ -317,6 +318,10 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
 
   ImGui::Text("GlyphWidth: %f", GlyphWidth);
   ImGui::Text("Spacing: %f", SpacingBetweenMidColumns);
+
+  float foo,bar,baz;
+  SDL_GetDisplayDPI(0,&foo,&bar,&baz);
+  ImGui::Text("dpi: %f %f %f", foo, bar, baz);
 
   ImGui::End();
 }

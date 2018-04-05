@@ -84,6 +84,8 @@ void SDLWindow::handleEvent(SDL_Event event) {
             int m_drawable_height = 0;
             SDL_GL_GetDrawableSize(m_window.get(), &m_drawable_width, &m_drawable_height);
             onResize(m_width, m_height, (uint32_t) m_drawable_width, (uint32_t) m_drawable_height);
+            LOG("wnd size: " + std::to_string(m_width) + " " + std::to_string(m_height))
+            LOG("draw size: " + std::to_string(m_drawable_width) + " " + std::to_string(m_drawable_height))
           }
           break;
         }
