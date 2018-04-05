@@ -1,3 +1,4 @@
+R"raw_shader(
 #version 330
 
 layout (location = 0) in vec2 in_vertex;
@@ -23,3 +24,4 @@ void main() {
 
      gl_Position = mvp * gl_Position;
 }
+)raw_shader";

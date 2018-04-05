@@ -1,3 +1,4 @@
+R"raw_shader(
 #version 330
 
 uniform sampler2D tex0;
@@ -17,3 +18,4 @@ void main()
 
   out_color *= color;
 }
+)raw_shader";

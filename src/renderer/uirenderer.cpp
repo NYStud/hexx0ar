@@ -11,8 +11,10 @@
 
 namespace fs = boost::filesystem;
 
-static const char *vs_source = "colored_texture.vs";
-static const char *fs_source = "colored_texture.fs";
+static const char *vs_source =
+#include "colored_texture.vs"
+static const char *fs_source =
+#include "colored_texture.fs"
 
 static const char* ImGui_GetClipboardText(void*)
 {
@@ -70,10 +72,10 @@ void UIRenderer::init() {
 
   m_shader.init();
 
-  m_shader.addFile(vs_source, vs_source);
-  m_shader.addFile(fs_source, fs_source);
-  m_shader.compile(vs_source, GL_VERTEX_SHADER);
-  m_shader.compile(fs_source, GL_FRAGMENT_SHADER);
+  m_shader.addData("vs", vs_source);
+  m_shader.addData("fs", fs_source);
+  m_shader.compile("vs", GL_VERTEX_SHADER);
+  m_shader.compile("fs", GL_FRAGMENT_SHADER);
 
   m_shader.attributes[0] = "in_position";
   m_shader.attributes[1] = "in_color";
