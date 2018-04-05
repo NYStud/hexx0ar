@@ -60,8 +60,12 @@ void UIRenderer::init() {
   auto config = ImFontConfig();
   config.OversampleH = 8;
   config.OversampleV = 8;
-  if(fs::exists(fs::path(fontpath)))
-    ImGui::GetIO().Fonts->AddFontFromFileTTF(fontpath.c_str(), 13, &config);
+  if(fs::exists(fs::path(fontpath))) {
+    for(int i = 9; i < 23; i++) {
+      ImGui::GetIO().Fonts->AddFontFromFileTTF(fontpath.c_str(), i, &config);
+    }
+    io.FontDefault = io.Fonts->Fonts[4];
+  }
 
   unsigned char* pixels;
   int width, height;

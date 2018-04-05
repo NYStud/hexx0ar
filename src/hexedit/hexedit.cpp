@@ -514,14 +514,6 @@ void HexEdit::DrawHexEdit() {
       auto handleTooltipAndClick = [&]() {
         m_current_view = isHighlighted(addr);
 
-        // tooltip
-        if (ImGui::IsItemHovered()) {
-          if(m_current_view >= 0 && (size_t)m_current_view < m_views.size()) {
-            ImGui::SetTooltip("%s | %lu bytes", m_views[m_current_view].name,
-                              m_views[m_current_view].end - m_views[m_current_view].start);
-          }
-        }
-
         // text selection
         if (ImGui::IsMouseDown(0)) {
           if (ImGui::IsItemHovered()) {
@@ -537,16 +529,28 @@ void HexEdit::DrawHexEdit() {
               m_click_current = addr;
             }
           }
-          ImGui::SetTooltip("%lu bytes", std::max(m_click_start, m_click_current) - std::min(m_click_start, m_click_current));
+          if(ImGui::IsWindowHovered()) {
+            ImGui::SetTooltip("%lu bytes", 1 + (std::max(m_click_start, m_click_current) - std::min(m_click_start, m_click_current)));
+          }
         } else {
           m_clicked = false;
+        }
+
+        // tooltip
+        if (ImGui::IsItemHovered()) {
+          if(m_current_view >= 0 && (size_t)m_current_view < m_views.size()) {
+            ImGui::SetTooltip("%s | %lu bytes", m_views[m_current_view].name,
+                              1 + (m_views[m_current_view].end - m_views[m_current_view].start));
+          }
         }
       };
 
       if (b == 0 && OptGreyOutZeroes) {
         ImGui::TextDisabled("0");
         handleTooltipAndClick();
+
         ImGui::SameLine(uint8_t_pos_x + GlyphWidth);
+
         ImGui::TextDisabled("0 ");
         handleTooltipAndClick();
       }
