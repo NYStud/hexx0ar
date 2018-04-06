@@ -18,7 +18,7 @@ hexx0ar uses several dependecies:
 in Debian you can simply install the following packages:
 
 ```
-apt install libboost1.63-all-dev libepoxy-dev libglm-dev libsdl2-dev libsdl2-image-dev libbullet-dev lua5.3 lua5.3-dev
+apt install libboost1.63-all-dev libepoxy-dev libglm-dev libsdl2-dev libsdl2-image-dev lua5.3 lua5.3-dev
 ```
 
 building

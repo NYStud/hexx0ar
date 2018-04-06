@@ -1,0 +1,9 @@
+before_install:
+        sudo apt-get -qq update
+        sudo apt-get install -y libboost1.63-all-dev libepoxy-dev libglm-dev libsdl2-dev libsdl2-image-dev lua5.3 lua5.3-dev
+
+mkdir build
+cd build
+cmake ..
+make
+

@@ -210,6 +210,11 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
 
           m_views.clear();
         }
+
+        if(ImGui::MenuItem("Reset")) {
+          ImGui::GetIO().FontGlobalScale = 1.0f;
+        }
+
         if (ImGui::MenuItem("Quit")) {
           exit(0);
         }
@@ -718,7 +723,7 @@ void HexEdit::DrawHexTable() {
 
     ImGui::Separator();
 
-    for(size_t y=0; y < data_Y.size(); y++) {
+    For(size_t y=0; y < data_Y.size(); y++) {
       snprintf(buf, sizeof(buf), "##y%lu", y);
       ImGui::InputFloat(buf, &data_Y[y], 0.0f, 0.0f, 2, ImGuiInputTextFlags_EnterReturnsTrue);
       ImGui::NextColumn();

@@ -56,7 +56,7 @@ void UIRenderer::init() {
   io.GetClipboardTextFn = ImGui_GetClipboardText;
   io.ClipboardUserData = NULL;
 
-  std::string fontpath = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf";
+  std::string fontpath = "/usr/share/fonts/truetype/liberation2/LiberationMono-Regular.ttf";
   auto config = ImFontConfig();
   config.OversampleH = 8;
   config.OversampleV = 8;
