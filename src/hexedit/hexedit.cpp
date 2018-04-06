@@ -5,10 +5,6 @@
 #include <SDL2/SDL_video.h>
 #include "hexedit.hpp"
 
-
-static int a = 3;
-static int a_e = 20;
-
 namespace fs = boost::filesystem;
 
 void to_json(json& j, const HexView& v) {
@@ -151,7 +147,7 @@ void HexEdit::CalcSizes() {
   if (AddrDigitsCount == 0)
     for (size_t n = base_display_addr + mem_size - 1; n > 0; n >>= 4)
       AddrDigitsCount++;
-  LineHeight = (float)(int)ImGui::GetTextLineHeight();
+  LineHeight = (float)(size_t)ImGui::GetTextLineHeight();
   GlyphWidth = ImGui::CalcTextSize("F").x + 1;                  // We assume the font is mono-space
   HexCellWidth = (GlyphWidth * 2.5f);             // "FF " we include trailing space in the width to easily catch clicks everywhere
   SpacingBetweenMidColumns = (HexCellWidth * 0.25f); // Every OptMidColumnsCount columns we add a bit of extra spacing
@@ -312,15 +308,6 @@ void HexEdit::BeginWindow(const char *title, size_t w, size_t h, size_t m_delta)
   ImGui::ShowFontSelector("Font Selector");
   ImGui::ShowStyleSelector("Style Selector");
 
-  ImGui::InputInt("test a", &a);
-  ImGui::InputInt("test a end", &a_e);
-
-  ImGui::Text("rows: %d", Columns);
-  ImGui::Text("addr: %d", a);
-  ImGui::Text("row/col: %lu, %lu", getRow(a), getCol(a));
-  ImGui::Text("top: %f, %f", getTopX(a), getTopY(a));
-  ImGui::Text("bottom: %f, %f", getBottomX(a), getBottomY(a));
-
   ImGui::Text("GlyphWidth: %f", GlyphWidth);
   ImGui::Text("Spacing: %f", SpacingBetweenMidColumns);
 
@@ -398,83 +385,88 @@ void HexEdit::DrawHexEdit() {
   const ImU32 color_text = ImGui::GetColorU32(ImGuiCol_Text);
   const ImU32 color_disabled = OptGreyOutZeroes ? ImGui::GetColorU32(ImGuiCol_TextDisabled) : color_text;
 
+  float scrolly = ImGui::GetScrollY();
+
   // highlights a byte, if there's a view for it
   // returns whether the byte was highlighted or not
   auto highlight_fnc = [&](HexView& v) {
     auto min = std::max((size_t)0, v.start);
     auto max = std::min(v.end, mem_size);
 
+    auto xoff = window_pos.x + PosHexStart;
+    auto yoff = window_pos.y - ImGui::GetScrollY();
+
     switch(v.mode) {
       case HexViewMode_Filled: {
         if(getRow(max) - getRow(min) == 0) {
-          draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
-                                   ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+          draw_list->AddRectFilled(ImVec2(xoff + getTopX(min), yoff + getTopY(min)),
+                                   ImVec2(xoff + getBottomX(max), yoff + getBottomY(max)),
                                    ImColor(v.color));
         } else {
-          draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
-                                   ImVec2(window_pos.x + PosHexStart + getBottomX(Columns - 1), window_pos.y + getBottomY(min)),
+          draw_list->AddRectFilled(ImVec2(xoff + getTopX(min), yoff + getTopY(min)),
+                                   ImVec2(xoff + getBottomX(Columns - 1), yoff + getBottomY(min)),
                                    ImColor(v.color));
 
           if(getRow(max) - getRow(min) > 1) {
-            draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart, window_pos.y + (getRow(min)+1)*LineHeight),
-                                     ImVec2(window_pos.x + PosHexStart + getBottomX(Columns - 1), window_pos.y + (getRow(max))*LineHeight),
+            draw_list->AddRectFilled(ImVec2(xoff, yoff + (getRow(min)+1)*LineHeight),
+                                     ImVec2(xoff + getBottomX(Columns - 1), yoff + (getRow(max))*LineHeight),
                                      ImColor(v.color));
           }
 
-          draw_list->AddRectFilled(ImVec2(window_pos.x + PosHexStart, window_pos.y + getTopY(max)),
-                                   ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+          draw_list->AddRectFilled(ImVec2(xoff, yoff + getTopY(max)),
+                                   ImVec2(xoff + getBottomX(max), yoff + getBottomY(max)),
                                    ImColor(v.color));
         }
         break;
       }
       case HexViewMode_Line: {
         if(getRow(max) - getRow(min) == 0) {
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
-                             ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getTopY(max)),
+          draw_list->AddLine(ImVec2(xoff + getTopX(min), yoff + getTopY(min)),
+                             ImVec2(xoff + getBottomX(max), yoff + getTopY(max)),
                              ImColor(v.color), 3.0f);
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getBottomY(min)),
-                             ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+          draw_list->AddLine(ImVec2(xoff + getTopX(min), yoff + getBottomY(min)),
+                             ImVec2(xoff + getBottomX(max), yoff + getBottomY(max)),
                              ImColor(v.color), 3.0f);
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
-                             ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getBottomY(min)),
+          draw_list->AddLine(ImVec2(xoff + getTopX(min), yoff + getTopY(min)),
+                             ImVec2(xoff + getTopX(min), yoff + getBottomY(min)),
                              ImColor(v.color), 3.0f);
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getTopY(max)),
-                             ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
+          draw_list->AddLine(ImVec2(xoff + getBottomX(max), yoff + getTopY(max)),
+                             ImVec2(xoff + getBottomX(max), yoff + getBottomY(max)),
                              ImColor(v.color), 3.0f);
         } else {
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
-                             ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getTopY(min)),
+          draw_list->AddLine(ImVec2(xoff + getTopX(min), yoff + getTopY(min)),
+                             ImVec2(xoff + getBottomX(Columns-1), yoff + getTopY(min)),
                              ImColor(v.color), 3.0f);
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getBottomY(min)),
-                             ImVec2(window_pos.x + PosHexStart, window_pos.y + getBottomY(min)),
+          draw_list->AddLine(ImVec2(xoff + getTopX(min), yoff + getBottomY(min)),
+                             ImVec2(xoff, yoff + getBottomY(min)),
                              ImColor(v.color), 3.0f);
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getTopY(min)),
-                             ImVec2(window_pos.x + PosHexStart + getTopX(min), window_pos.y + getBottomY(min)),
+          draw_list->AddLine(ImVec2(xoff + getTopX(min), yoff + getTopY(min)),
+                             ImVec2(xoff + getTopX(min), yoff + getBottomY(min)),
                              ImColor(v.color), 3.0f);
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getTopY(min)),
-                             ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getBottomY(min)),
+          draw_list->AddLine(ImVec2(xoff + getBottomX(Columns-1), yoff + getTopY(min)),
+                             ImVec2(xoff + getBottomX(Columns-1), yoff + getBottomY(min)),
                              ImColor(v.color), 3.0f);
 
           if(getRow(max) - getRow(min) > 1) {
-            draw_list->AddLine(ImVec2(window_pos.x + PosHexStart, window_pos.y + getBottomY(min)),
-                               ImVec2(window_pos.x + PosHexStart, window_pos.y + getTopY(max)),
+            draw_list->AddLine(ImVec2(xoff, yoff + getBottomY(min)),
+                               ImVec2(xoff, yoff + getTopY(max)),
                                ImColor(v.color), 3.0f);
-            draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getBottomY(min)),
-                               ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getTopY(max)),
+            draw_list->AddLine(ImVec2(xoff + getBottomX(Columns-1), yoff + getBottomY(min)),
+                               ImVec2(xoff + getBottomX(Columns-1), yoff + getTopY(max)),
                                ImColor(v.color), 3.0f);
           }
 
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
-                             ImVec2(window_pos.x + PosHexStart, window_pos.y + getBottomY(max)),
+          draw_list->AddLine(ImVec2(xoff + getBottomX(max), yoff + getBottomY(max)),
+                             ImVec2(xoff, yoff + getBottomY(max)),
                              ImColor(v.color), 3.0f);
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getTopY(max)),
-                             ImVec2(window_pos.x + PosHexStart + getBottomX(Columns-1), window_pos.y + getTopY(max)),
+          draw_list->AddLine(ImVec2(xoff + getBottomX(max), yoff + getTopY(max)),
+                             ImVec2(xoff + getBottomX(Columns-1), yoff + getTopY(max)),
                              ImColor(v.color), 3.0f);
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getBottomY(max)),
-                             ImVec2(window_pos.x + PosHexStart + getBottomX(max), window_pos.y + getTopY(max)),
+          draw_list->AddLine(ImVec2(xoff + getBottomX(max), yoff + getBottomY(max)),
+                             ImVec2(xoff + getBottomX(max), yoff + getTopY(max)),
                              ImColor(v.color), 3.0f);
-          draw_list->AddLine(ImVec2(window_pos.x + PosHexStart, window_pos.y + getBottomY(max)),
-                             ImVec2(window_pos.x + PosHexStart, window_pos.y + getTopY(max)),
+          draw_list->AddLine(ImVec2(xoff, yoff + getBottomY(max)),
+                             ImVec2(xoff, yoff + getTopY(max)),
                              ImColor(v.color), 3.0f);
         }
         break;
@@ -490,12 +482,12 @@ void HexEdit::DrawHexEdit() {
   hv.color = ImColor(IM_COL32(255,0,0,128));
   hv.mode = HexViewMode_Line;
 
-  // highlight current selection
-  highlight_fnc(hv);
   // highlight views
   for(size_t i=0; i < m_views.size(); i++) {
     highlight_fnc(m_views[i]);
   }
+  // highlight current selection
+  highlight_fnc(hv);
 
   // render all visible lines
   for (int line_i = clipper.DisplayStart; line_i < clipper.DisplayEnd; line_i++)
@@ -599,7 +591,6 @@ void HexEdit::DrawHexEdit() {
         pos.x += GlyphWidth;
       }
     }
-
   }
   clipper.End();
   ImGui::PopStyleVar(2);
@@ -607,7 +598,7 @@ void HexEdit::DrawHexEdit() {
 
   ImGui::Separator();
 
-  ImGui::Text("Position: 0");
+  ImGui::Text("Position: %f", scrolly);
 
   ImGui::SameLine();
   ImGui::Text("Range %0*" _PRISizeT "..%0*" _PRISizeT, AddrDigitsCount, base_display_addr, AddrDigitsCount, base_display_addr + mem_size - 1);
@@ -628,7 +619,7 @@ void HexEdit::DrawHexEdit() {
     if (GotoAddr < mem_size)
     {
       ImGui::BeginChild("##scrolling");
-      ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + (GotoAddr / Columns) * ImGui::GetTextLineHeight());
+      ImGui::SetScrollFromPosY(ImGui::GetCursorStartPos().y + (GotoAddr / Columns) * LineHeight);
       ImGui::EndChild();
     }
     GotoAddr = (size_t)-1;
@@ -723,7 +714,7 @@ void HexEdit::DrawHexTable() {
 
     ImGui::Separator();
 
-    For(size_t y=0; y < data_Y.size(); y++) {
+    for(size_t y=0; y < data_Y.size(); y++) {
       snprintf(buf, sizeof(buf), "##y%lu", y);
       ImGui::InputFloat(buf, &data_Y[y], 0.0f, 0.0f, 2, ImGuiInputTextFlags_EnterReturnsTrue);
       ImGui::NextColumn();
